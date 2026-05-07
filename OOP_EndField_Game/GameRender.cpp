@@ -12,7 +12,7 @@ void Game::renderButton(float x, float y, float w, float h, const std::string& l
     bg.setOutlineThickness(1.f);
     window_.draw(bg);
 
-    sf::Text txt(font_, label, (unsigned int)(h * 0.4f));
+    sf::Text txt(font_, label, (unsigned int)(h * 0.5f));
     txt.setFillColor(sf::Color(20, 20, 30));
     auto bounds = txt.getLocalBounds();
     txt.setPosition(sf::Vector2f(x + (w - bounds.size.x)/2 - bounds.position.x,
@@ -282,33 +282,33 @@ void Game::renderMainMenu() {
 void Game::renderLevelSelect() {
     sf::Text title(font_, "Select Level", 32);
     title.setFillColor(Colors::accent());
-    title.setPosition(sf::Vector2f(200, 30));
+    title.setPosition(sf::Vector2f(390, 30));
     window_.draw(title);
 
-    renderButton(20, 20, 100, 40, "Back", isMouseOver(20,20,100,40));
+    renderButton(40, 380, 100, 40, "Back", isMouseOver(40,380,100,40));
 
     if (levelFiles_.empty()) {
         sf::Text none(font_, "No .txt files found in Levels/ folder", 18);
         none.setFillColor(Colors::error());
-        none.setPosition(sf::Vector2f(200, 150));
+        none.setPosition(sf::Vector2f(390, 150));
         window_.draw(none);
         return;
     }
 
     for (int i = 0; i < (int)levelFiles_.size(); ++i) {
-        float y = 100.f + i * 60.f;
-        bool hov = isMouseOver(200, y, 500, 50);
+        float y = 100.f + i * 60.f + levelScrollY_;
+        bool hov = isMouseOver(390, y, 500, 50);
         sf::RectangleShape bg(sf::Vector2f(500, 50));
-        bg.setPosition(sf::Vector2f(200, y));
+        bg.setPosition(sf::Vector2f(390, y));
         bg.setFillColor(hov ? sf::Color(45, 55, 65) : Colors::panel());
         bg.setOutlineColor(hov ? Colors::accent() : sf::Color(50,55,70));
         bg.setOutlineThickness(1.f);
         window_.draw(bg);
 
         auto path = std::filesystem::path(levelFiles_[i]);
-        sf::Text txt(font_, path.filename().string(), 18);
+        sf::Text txt(font_, sf::String(path.filename().wstring()), 18);
         txt.setFillColor(hov ? Colors::accentHover() : Colors::text());
-        txt.setPosition(sf::Vector2f(220, y + 14));
+        txt.setPosition(sf::Vector2f(410, y + 14));
         window_.draw(txt);
     }
 }
@@ -316,7 +316,8 @@ void Game::renderLevelSelect() {
 void Game::renderPlaying() {
     // Header
     auto path = std::filesystem::path(currentLevelPath_);
-    sf::Text header(font_, "Level: " + path.filename().string(), 20);
+    sf::String headerStr = L"Level: " + path.filename().wstring();
+    sf::Text header(font_, headerStr, 20);
     header.setFillColor(Colors::text());
     header.setPosition(sf::Vector2f(boardOffX_, 10));
     window_.draw(header);
@@ -336,101 +337,113 @@ void Game::renderPlaying() {
     renderPartPalette();
 
     // Buttons
-    float btnY = boardOffY_ + board_.rows() * cellSize_ + 30.f;
-    renderButton(boardOffX_, btnY, 120, 40, "Reset", isMouseOver(boardOffX_, btnY, 120, 40));
-    renderButton(boardOffX_+140, btnY, 120, 40, "Solve", isMouseOver(boardOffX_+140, btnY, 120, 40));
+    float btnY = boardOffY_ + board_.rows() * cellSize_ + 40.f;
+    renderButton(boardOffX_, btnY, 140, 50, "Reset", isMouseOver(boardOffX_, btnY, 140, 50));
+    renderButton(boardOffX_+160, btnY, 140, 50, "Solve All", isMouseOver(boardOffX_+160, btnY, 140, 50));
 
     if (hintAvailable_) {
-        renderButton(boardOffX_+280, btnY, 120, 40, "Hint",
-                     isMouseOver(boardOffX_+280, btnY, 120, 40));
+        renderButton(boardOffX_+320, btnY, 140, 50, "Hint",
+                     isMouseOver(boardOffX_+320, btnY, 140, 50));
     } else {
-        sf::RectangleShape disBtn(sf::Vector2f(120, 40));
-        disBtn.setPosition(sf::Vector2f(boardOffX_+280, btnY));
+        sf::RectangleShape disBtn(sf::Vector2f(140, 50));
+        disBtn.setPosition(sf::Vector2f(boardOffX_+320, btnY));
         disBtn.setFillColor(sf::Color(50, 55, 65));
         window_.draw(disBtn);
-        sf::Text ht(font_, "Hint (wait)", 14);
+        sf::Text ht(font_, "Hint (wait)", 18);
         ht.setFillColor(sf::Color(80,85,95));
-        ht.setPosition(sf::Vector2f(boardOffX_+290, btnY+12));
+        ht.setPosition(sf::Vector2f(boardOffX_+340, btnY+12));
         window_.draw(ht);
     }
 
-    renderButton(boardOffX_+420, btnY, 120, 40, "Menu",
-                 isMouseOver(boardOffX_+420, btnY, 120, 40));
+    renderButton(boardOffX_+480, btnY, 140, 50, "Back",
+                 isMouseOver(boardOffX_+480, btnY, 140, 50));
 
     // Status message
     if (!statusMsg_.empty()) {
-        sf::Text st(font_, statusMsg_, 16);
+        sf::Text st(font_, statusMsg_, 20);
         st.setFillColor(Colors::error());
-        st.setPosition(sf::Vector2f(boardOffX_, btnY + 50));
+        st.setPosition(sf::Vector2f(boardOffX_, btnY + 70));
         window_.draw(st);
     }
 
     // Controls help
-    sf::Text help(font_, "WASD:Move  R:Rotate  Enter/Click:Place  Esc:Deselect  F5:Reset  F1:Hint", 12);
+    sf::Text help(font_, "WASD:Move  R:Rotate  Enter/Click:Place  Esc:Deselect  F5:Reset  F1:Hint", 16);
     help.setFillColor(sf::Color(80, 85, 100));
-    help.setPosition(sf::Vector2f(20, 775));
+    help.setPosition(sf::Vector2f(20, 760));
     window_.draw(help);
 }
 
 void Game::renderEditor() {
-    sf::Text title(font_, "Level Editor", 28);
+    sf::Text title(font_, "Level Editor", 32);
     title.setFillColor(Colors::accent());
-    title.setPosition(sf::Vector2f(20, 5));
+    title.setPosition(sf::Vector2f(20, 10));
     window_.draw(title);
 
-    // Tool buttons
+    // Tool buttons (Y = 60)
     float tx = 20.f;
-    renderButton(tx, 40, 80, 30, "Empty", editorTool_==0); tx+=90;
-    renderButton(tx, 40, 80, 30, "Block(X)", editorTool_==1); tx+=90;
+    renderButton(tx, 60, 110, 40, "Empty", editorTool_==0); tx+=120;
+    renderButton(tx, 60, 110, 40, "Block(X)", editorTool_==1); tx+=120;
     for (int c = 0; c < editorColors_; c++) {
         std::string l = "Fixed C" + std::to_string(c);
-        renderButton(tx, 40, 80, 30, l, editorTool_==2+c);
-        tx += 90;
+        renderButton(tx, 60, 110, 40, l, editorTool_==2+c);
+        tx += 120;
     }
 
-    // Size controls
-    float cy = 80.f;
-    sf::Text rl(font_, "Rows:" + std::to_string(editorRows_), 14);
-    rl.setFillColor(Colors::text()); rl.setPosition(sf::Vector2f(20, cy)); window_.draw(rl);
-    renderButton(90, cy, 25, 20, "-", false); renderButton(120, cy, 25, 20, "+", false);
+    // Size controls (Y = 120)
+    float cy = 120.f;
+    sf::Text rl(font_, "Rows: " + std::to_string(editorRows_), 20);
+    rl.setFillColor(Colors::text()); rl.setPosition(sf::Vector2f(20, cy+8)); window_.draw(rl);
+    renderButton(120, cy, 40, 40, "-", false); renderButton(170, cy, 40, 40, "+", false);
 
-    sf::Text cl(font_, "Cols:" + std::to_string(editorCols_), 14);
-    cl.setFillColor(Colors::text()); cl.setPosition(sf::Vector2f(160, cy)); window_.draw(cl);
-    renderButton(230, cy, 25, 20, "-", false); renderButton(260, cy, 25, 20, "+", false);
+    sf::Text cl(font_, "Cols: " + std::to_string(editorCols_), 20);
+    cl.setFillColor(Colors::text()); cl.setPosition(sf::Vector2f(250, cy+8)); window_.draw(cl);
+    renderButton(350, cy, 40, 40, "-", false); renderButton(400, cy, 40, 40, "+", false);
 
-    sf::Text ccl(font_, "Colors:" + std::to_string(editorColors_), 14);
-    ccl.setFillColor(Colors::text()); ccl.setPosition(sf::Vector2f(300, cy)); window_.draw(ccl);
-    renderButton(380, cy, 25, 20, "-", false); renderButton(410, cy, 25, 20, "+", false);
-    renderButton(450, cy, 60, 20, "Apply", false);
+    sf::Text ccl(font_, "Colors:" + std::to_string(editorColors_), 20);
+    ccl.setFillColor(Colors::text()); ccl.setPosition(sf::Vector2f(480, cy+8)); window_.draw(ccl);
+    renderButton(580, cy, 40, 40, "-", false); renderButton(630, cy, 40, 40, "+", false);
 
-    // Editor board
-    float eox = 60.f, eoy = 120.f, ecs = 50.f;
+    // Editor board (Y = 190)
+    float eox = 60.f, eoy = 190.f, ecs = 50.f;
     if (editorBoard_.rows() > 0)
         renderBoard(editorBoard_, eox, eoy, ecs);
     else {
-        sf::Text hint(font_, "Click 'Apply' to create board", 16);
-        hint.setFillColor(sf::Color(100,105,120));
+        sf::Text hint(font_, "Click 'Apply Size' to create board", 20);
+        hint.setFillColor(sf::Color(150,155,170));
         hint.setPosition(sf::Vector2f(eox, eoy+20));
         window_.draw(hint);
     }
 
     // Part creation panel
-    float pcx = eox + std::max(editorCols_, 5) * ecs + 80.f;
-    sf::Text pt(font_, "Create Part", 18);
+    float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
+    if (pcx < 650.f) pcx = 650.f;
+    
+    sf::Text pt(font_, "Create Part", 24);
     pt.setFillColor(Colors::accent());
-    pt.setPosition(sf::Vector2f(pcx, 105));
+    pt.setPosition(sf::Vector2f(pcx, 190));
     window_.draw(pt);
 
-    sf::Text ps(font_, "W:" + std::to_string(editorPartW_) + " H:" + std::to_string(editorPartH_)
-                + " Color:" + std::to_string(editorPartColor_), 13);
-    ps.setFillColor(Colors::text()); ps.setPosition(sf::Vector2f(pcx, 130)); window_.draw(ps);
+    // W, H, Color (Y = 240)
+    float psy = 240.f;
+    sf::Text pw(font_, "W: " + std::to_string(editorPartW_), 18);
+    pw.setFillColor(Colors::text()); pw.setPosition(sf::Vector2f(pcx, psy+10)); window_.draw(pw);
+    renderButton(pcx+50, psy, 35, 35, "-", false); renderButton(pcx+90, psy, 35, 35, "+", false);
 
-    // Part shape grid
-    float psy = 160.f;
+    sf::Text ph(font_, "H: " + std::to_string(editorPartH_), 18);
+    ph.setFillColor(Colors::text()); ph.setPosition(sf::Vector2f(pcx+140, psy+10)); window_.draw(ph);
+    renderButton(pcx+190, psy, 35, 35, "-", false); renderButton(pcx+230, psy, 35, 35, "+", false);
+
+    sf::Text pcol(font_, "Color: " + std::to_string(editorPartColor_), 18);
+    pcol.setFillColor(Colors::partColor(editorPartColor_)); 
+    pcol.setPosition(sf::Vector2f(pcx+280, psy+10)); window_.draw(pcol);
+    renderButton(pcx+380, psy, 110, 35, "Next Color", false);
+
+    // Part shape grid (Y = 300)
+    float psgy = 300.f;
     for (int r = 0; r < editorPartH_; r++) {
         for (int c = 0; c < editorPartW_; c++) {
-            sf::RectangleShape cell(sf::Vector2f(28, 28));
-            cell.setPosition(sf::Vector2f(pcx + c*30, psy + r*30));
+            sf::RectangleShape cell(sf::Vector2f(38, 38));
+            cell.setPosition(sf::Vector2f(pcx + c*40, psgy + r*40));
             bool filled = (r < (int)editorPartShape_.size() && c < (int)editorPartShape_[0].size()
                           && editorPartShape_[r][c]);
             cell.setFillColor(filled ? Colors::partColor(editorPartColor_) : sf::Color(40,44,55));
@@ -439,24 +452,63 @@ void Game::renderEditor() {
             window_.draw(cell);
         }
     }
-    renderButton(pcx, psy + editorPartH_*30+10, 100, 30, "Add Part", false);
+    renderButton(pcx, psgy + editorPartH_*40 + 20, 140, 45, "Add Part", false);
 
-    // Parts list
-    sf::Text pl(font_, "Parts: " + std::to_string(editorParts_.size()), 14);
+    sf::Text pl(font_, "Parts Created: " + std::to_string(editorParts_.size()), 20);
     pl.setFillColor(Colors::text());
-    pl.setPosition(sf::Vector2f(pcx, psy + editorPartH_*30+50));
+    pl.setPosition(sf::Vector2f(pcx + 160, psgy + editorPartH_*40 + 30));
     window_.draw(pl);
 
+    // Draw little icons of editor parts
+    float partsStartY = psgy + editorPartH_*40 + 80;
+
+    // Set up a view for clipping the scrollable area
+    sf::View defaultView = window_.getView();
+    sf::View partsView(sf::FloatRect({pcx, partsStartY}, {1280.f - pcx, 800.f - partsStartY}));
+    partsView.setViewport(sf::FloatRect({pcx / 1280.f, partsStartY / 800.f}, {(1280.f - pcx) / 1280.f, (800.f - partsStartY) / 800.f}));
+    window_.setView(partsView);
+
+    float lpx = pcx;
+    float lpy = partsStartY + editorScrollY_;
+    for (size_t i = 0; i < editorParts_.size(); ++i) {
+        if (lpx + 60 > 1200) { lpx = pcx; lpy += 60; }
+
+        sf::RectangleShape pBg(sf::Vector2f(50, 50));
+        pBg.setPosition(sf::Vector2f(lpx, lpy));
+        pBg.setFillColor(Colors::panel());
+        pBg.setOutlineThickness(1.f);
+        pBg.setOutlineColor(sf::Color(60,65,80));
+        window_.draw(pBg);
+
+        auto& pt = editorParts_[i];
+        float miniCs = std::min(40.f / pt.height(), 40.f / pt.width());
+        miniCs = std::min(miniCs, 12.f);
+        for (int pr = 0; pr < pt.height(); ++pr) {
+            for (int pc = 0; pc < pt.width(); ++pc) {
+                if (!pt.shape()[pr][pc]) continue;
+                sf::RectangleShape mc(sf::Vector2f(miniCs-1, miniCs-1));
+                mc.setPosition(sf::Vector2f(lpx + 5 + pc*miniCs, lpy + 5 + pr*miniCs));
+                mc.setFillColor(Colors::partColor(pt.colorIndex()));
+                window_.draw(mc);
+            }
+        }
+        lpx += 60;
+    }
+
+    window_.setView(defaultView);
+
     // Bottom buttons
-    float btnY2 = eoy + std::max(editorRows_, 5) * ecs + 30.f;
-    renderButton(eox, btnY2, 120, 40, "Export", isMouseOver(eox, btnY2, 120, 40));
-    renderButton(eox+140, btnY2, 120, 40, "Test Play", isMouseOver(eox+140, btnY2, 120, 40));
-    renderButton(eox+280, btnY2, 120, 40, "Back", isMouseOver(eox+280, btnY2, 120, 40));
+    float btnY2 = eoy + std::max(editorRows_, 5) * ecs + 50.f;
+    if (btnY2 < psgy + editorPartH_*40 + 100.f) btnY2 = psgy + editorPartH_*40 + 100.f;
+
+    renderButton(eox, btnY2, 140, 50, "Export", isMouseOver(eox, btnY2, 140, 50));
+    renderButton(eox+160, btnY2, 140, 50, "Test Play", isMouseOver(eox+160, btnY2, 140, 50));
+    renderButton(eox+320, btnY2, 140, 50, "Back", isMouseOver(eox+320, btnY2, 140, 50));
 
     if (!statusMsg_.empty()) {
-        sf::Text st(font_, statusMsg_, 14);
+        sf::Text st(font_, statusMsg_, 18);
         st.setFillColor(Colors::accent());
-        st.setPosition(sf::Vector2f(eox, btnY2+50));
+        st.setPosition(sf::Vector2f(eox, btnY2+70));
         window_.draw(st);
     }
 }
@@ -482,8 +534,8 @@ void Game::renderVictory() {
     sub.setPosition(sf::Vector2f(640 - sb.size.x/2, 380));
     window_.draw(sub);
 
-    renderButton(440, 450, 200, 50, "Next Level", isMouseOver(440,450,200,50));
-    renderButton(440, 520, 200, 50, "Main Menu", isMouseOver(440,520,200,50));
+    renderButton(540, 450, 200, 50, "Next Game", isMouseOver(540,450,200,50));
+    renderButton(540, 520, 200, 50, "Main Menu", isMouseOver(540,520,200,50));
 }
 
 void Game::render() {
@@ -499,4 +551,5 @@ void Game::render() {
 }
 
 } // namespace ark
+
 

@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "Board.h"
 #include <stdexcept>
 #include <iostream>
 #include <iomanip>
@@ -14,6 +15,18 @@ namespace ark {
           curRow_(colorCount, std::vector<int>(rows, 0)),
           curCol_(colorCount, std::vector<int>(cols, 0))
     {}
+
+    void Board::setEmptyCell(int r, int c) {
+        if (cellType_[r][c] == cell::FIXED) {
+            int color = cellColor_[r][c];
+            if (color >= 0) {
+                curRow_[color][r]--;
+                curCol_[color][c]--;
+            }
+        }
+        cellType_[r][c] = cell::EMPTY;
+        cellColor_[r][c] = -1;
+    }
 
     void Board::setBlockedCell(int r, int c) {
         cellType_[r][c] = cell::BLOCK;

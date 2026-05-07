@@ -3,6 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
+#include <filesystem>
 
 namespace ark {
 
@@ -50,10 +51,10 @@ namespace ark {
         while (fin >> colorIdx >> m2 >> n2) {
             Shape shape(m2, std::vector<uint8_t>(n2, 0));
             for (int r = 0; r < m2; ++r) {
-                std::string line;
-                fin >> line;
-                for (int c = 0; c < n2 && c < (int)line.size(); ++c)
-                    shape[r][c] = (line[c] == '1') ? 1 : 0;
+                for (int c = 0; c < n2; ++c) {
+                    int val;
+                    if (fin >> val) shape[r][c] = val ? 1 : 0;
+                }
             }
             parts.emplace_back(partId++, colorIdx, shape);
         }
@@ -63,6 +64,10 @@ namespace ark {
 
     void exportLevel(const std::string& filepath, const Board& board,
                      const std::vector<Part>& parts) {
+        std::filesystem::path path(filepath);
+        if (path.has_parent_path()) {
+            std::filesystem::create_directories(path.parent_path());
+        }
         std::ofstream fout(filepath);
         if (!fout.is_open())
             throw std::runtime_error("Cannot open file for export: " + filepath);
@@ -70,7 +75,7 @@ namespace ark {
         const int C = board.colorCount();
         const int M = board.rows();
         const int N = board.cols();
-        fout << C << " " << M << " " << N << "\n";
+        fout << C << " " << M << " " << N << "\n\n";
 
         // 收集固定格
         // fixedCells[color] = vector<(r,c)>
@@ -90,6 +95,7 @@ namespace ark {
             fout << fixedCells[color].size() << "\n";
             for (auto& [r, c] : fixedCells[color])
                 fout << r << " " << c << "\n";
+            fout << "\n";
         }
 
         // 收集不可放置格
@@ -98,7 +104,7 @@ namespace ark {
             for (int c = 0; c < N; ++c)
                 if (board.cellType(r, c) == cell::BLOCK)
                     blocked.push_back({r, c});
-        fout << blocked.size() << "\n";
+        fout << blocked.size() << "\n\n";
         for (auto& [r, c] : blocked)
             fout << r << " " << c << "\n";
 
@@ -107,9 +113,10 @@ namespace ark {
             fout << part.colorIndex() << " " << part.height() << " " << part.width() << "\n";
             for (int r = 0; r < part.height(); ++r) {
                 for (int c = 0; c < part.width(); ++c)
-                    fout << (int)part.shape()[r][c];
+                    fout << (int)part.shape()[r][c] << (c == part.width() - 1 ? "" : " ");
                 fout << "\n";
             }
+            fout << "\n";
         }
     }
 

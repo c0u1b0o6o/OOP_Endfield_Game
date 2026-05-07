@@ -17,7 +17,10 @@ Game::Game() {
 void Game::loadFont() {
     // Try multiple font paths
     std::vector<std::string> paths = {
-        "Assets/font.ttf",
+        "Assets/fonts/font.ttf",
+        "C:/Windows/Fonts/msjh.ttf",
+        "C:/Windows/Fonts/msyh.ttf",
+        "C:/Windows/Fonts/simhei.ttf",
         "C:/Windows/Fonts/consola.ttf",
         "C:/Windows/Fonts/arial.ttf",
         "C:/Windows/Fonts/segoeui.ttf"
@@ -232,21 +235,30 @@ void Game::handleMainMenuEvent(const sf::Event& ev) {
         if (mp->button == sf::Mouse::Button::Left) {
             float cx = 640.f, bw = 300.f, bh = 55.f;
             if (isMouseOver(cx-bw/2, 300, bw, bh)) scene_ = Scene::LevelSelect;
-            else if (isMouseOver(cx-bw/2, 380, bw, bh)) scene_ = Scene::Editor;
+            else if (isMouseOver(cx-bw/2, 380, bw, bh)) {
+                scene_ = Scene::Editor;
+                if (editorBoard_.rows() == 0) editorBoard_ = Board(editorRows_, editorCols_, editorColors_);
+            }
             else if (isMouseOver(cx-bw/2, 460, bw, bh)) window_.close();
         }
     }
 }
 
 void Game::handleLevelSelectEvent(const sf::Event& ev) {
+    if (auto* sc = ev.getIf<sf::Event::MouseWheelScrolled>()) {
+        float maxScroll = std::max(0.f, levelFiles_.size() * 60.f - 600.f);
+        levelScrollY_ += sc->delta * 30.f;
+        if (levelScrollY_ > 0) levelScrollY_ = 0;
+        if (levelScrollY_ < -maxScroll) levelScrollY_ = -maxScroll;
+    }
     if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
         if (mp->button == sf::Mouse::Button::Left) {
             // Back button
-            if (isMouseOver(20, 20, 100, 40)) { scene_ = Scene::MainMenu; return; }
+            if (isMouseOver(40, 380, 100, 40)) { scene_ = Scene::MainMenu; return; }
             // Level buttons
             for (int i = 0; i < (int)levelFiles_.size(); ++i) {
-                float y = 100.f + i * 60.f;
-                if (isMouseOver(200, y, 500, 50)) {
+                float y = 100.f + i * 60.f + levelScrollY_;
+                if (isMouseOver(390, y, 500, 50)) {
                     loadLevel(levelFiles_[i]);
                     return;
                 }
@@ -298,9 +310,9 @@ void Game::handlePlayingEvent(const sf::Event& ev) {
                 }
             }
             // Buttons
-            float btnY = boardOffY_ + board_.rows() * cellSize_ + 30.f;
-            if (isMouseOver(boardOffX_, btnY, 120, 40)) resetLevel();
-            if (isMouseOver(boardOffX_+140, btnY, 120, 40)) {
+            float btnY = boardOffY_ + board_.rows() * cellSize_ + 40.f;
+            if (isMouseOver(boardOffX_, btnY, 140, 50)) resetLevel();
+            if (isMouseOver(boardOffX_+160, btnY, 140, 50)) {
                 if (!solutionSearched_) solveInBackground();
                 if (solutionFound_) {
                     // Auto place all
@@ -317,11 +329,11 @@ void Game::handlePlayingEvent(const sf::Event& ev) {
                         scene_ = Scene::Victory;
                 }
             }
-            if (hintAvailable_ && isMouseOver(boardOffX_+280, btnY, 120, 40)) {
+            if (hintAvailable_ && isMouseOver(boardOffX_+320, btnY, 140, 50)) {
                 if (!solutionSearched_) solveInBackground();
                 showHint();
             }
-            if (isMouseOver(boardOffX_+420, btnY, 120, 40)) {
+            if (isMouseOver(boardOffX_+480, btnY, 140, 50)) {
                 scene_ = Scene::LevelSelect;
             }
         }
@@ -335,54 +347,99 @@ void Game::handleEditorEvent(const sf::Event& ev) {
     if (auto* kp = ev.getIf<sf::Event::KeyPressed>()) {
         if (kp->code == sf::Keyboard::Key::Escape) scene_ = Scene::MainMenu;
     }
+    if (auto* sc = ev.getIf<sf::Event::MouseWheelScrolled>()) {
+        auto m = mousePos();
+        float eox = 60.f, ecs = 50.f;
+        float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
+        if (pcx < 650.f) pcx = 650.f;
+        float partsStartY = 300.f + editorPartH_*40.f + 80.f;
+        if (m.x >= pcx && m.y >= partsStartY) {
+            editorScrollY_ += sc->delta * 30.f; // wheel scrolling sensitivity
+            if (editorScrollY_ > 0.f) editorScrollY_ = 0.f;
+
+            // Calculate roughly the max required height to prevent endless scroll
+            int iconsPerRow = std::max(1, (int)((1280.f - pcx) / 60.f));
+            int maxRows = std::ceil((float)editorParts_.size() / iconsPerRow);
+            float maxScroll = -std::max(0.f, (maxRows * 60.f) - (800.f - partsStartY) + 80.f);
+            if (editorScrollY_ < maxScroll) editorScrollY_ = maxScroll;
+        }
+    }
     if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
         if (mp->button == sf::Mouse::Button::Left) {
             auto m = mousePos();
             // Tool buttons at top
             float tx = 20.f;
-            if (isMouseOver(tx, 10, 80, 35)) { editorTool_ = 0; } tx += 90;
-            if (isMouseOver(tx, 10, 80, 35)) { editorTool_ = 1; } tx += 90;
+            if (isMouseOver(tx, 60, 110, 40)) { editorTool_ = 0; } tx += 120;
+            if (isMouseOver(tx, 60, 110, 40)) { editorTool_ = 1; } tx += 120;
             for (int c = 0; c < editorColors_; c++) {
-                if (isMouseOver(tx, 10, 80, 35)) { editorTool_ = 2 + c; }
-                tx += 90;
+                if (isMouseOver(tx, 60, 110, 40)) { editorTool_ = 2 + c; }
+                tx += 120;
             }
-            // Board size controls
-            if (isMouseOver(20, 55, 30, 25)) { editorRows_ = std::max(2, editorRows_-1); }
-            if (isMouseOver(55, 55, 30, 25)) { editorRows_ = std::min(10, editorRows_+1); }
-            if (isMouseOver(110, 55, 30, 25)) { editorCols_ = std::max(2, editorCols_-1); }
-            if (isMouseOver(145, 55, 30, 25)) { editorCols_ = std::min(10, editorCols_+1); }
-            if (isMouseOver(200, 55, 30, 25)) { editorColors_ = std::max(1, editorColors_-1); }
-            if (isMouseOver(235, 55, 30, 25)) { editorColors_ = std::min(4, editorColors_+1); }
-            // Apply board size
-            if (isMouseOver(290, 55, 70, 25)) {
-                editorBoard_ = Board(editorRows_, editorCols_, editorColors_);
-                editorParts_.clear();
+            
+            // Size controls
+            float cy = 120.f;
+            int oldR = editorRows_, oldC = editorCols_, oldCol = editorColors_;
+            if (isMouseOver(120, cy, 40, 40)) { editorRows_ = std::max(2, editorRows_-1); }
+            if (isMouseOver(170, cy, 40, 40)) { editorRows_ = std::min(10, editorRows_+1); }
+            if (isMouseOver(350, cy, 40, 40)) { editorCols_ = std::max(2, editorCols_-1); }
+            if (isMouseOver(400, cy, 40, 40)) { editorCols_ = std::min(10, editorCols_+1); }
+            if (isMouseOver(580, cy, 40, 40)) { editorColors_ = std::max(1, editorColors_-1); }
+            if (isMouseOver(630, cy, 40, 40)) { editorColors_ = std::min(4, editorColors_+1); }
+
+            if (oldR != editorRows_ || oldC != editorCols_ || oldCol != editorColors_ || editorBoard_.rows() == 0) {
+                Board nb(editorRows_, editorCols_, editorColors_);
+                if (editorBoard_.rows() > 0) {
+                    for(int r = 0; r < std::min(editorBoard_.rows(), editorRows_); ++r) {
+                        for(int c = 0; c < std::min(editorBoard_.cols(), editorCols_); ++c) {
+                            int t = editorBoard_.cellType(r,c);
+                            if(t == -1) nb.setEmptyCell(r,c);
+                            else if(t == -2) nb.setBlockedCell(r,c);
+                            else if(t == -3) {
+                                int cCol = editorBoard_.cellColor(r,c);
+                                if(cCol < editorColors_) nb.setFixedCell(r, c, cCol);
+                            }
+                        }
+                    }
+                }
+                editorBoard_ = nb;
+                editorPartColor_ = std::min(editorPartColor_, editorColors_ - 1);
+
+                // Clear parts that now have invalid colors
+                auto it = std::remove_if(editorParts_.begin(), editorParts_.end(), [this](const Part& p) {
+                    return p.colorIndex() >= editorColors_;
+                });
+                editorParts_.erase(it, editorParts_.end());
             }
+            
             // Board grid click
-            float eox = 60.f, eoy = 100.f, ecs = 50.f;
+            float eox = 60.f, eoy = 190.f, ecs = 50.f;
             int cr = (int)((m.y - eoy) / ecs);
             int cc = (int)((m.x - eox) / ecs);
-            if (cr >= 0 && cr < editorRows_ && cc >= 0 && cc < editorCols_) {
+            if (m.y >= eoy && m.x >= eox && cr >= 0 && cr < editorRows_ && cc >= 0 && cc < editorCols_) {
                 if (editorTool_ == 0) {
-                    // Clear: reset to empty (rebuild board)
+                    editorBoard_.setEmptyCell(cr, cc);
                 } else if (editorTool_ == 1) {
                     editorBoard_.setBlockedCell(cr, cc);
                 } else {
                     editorBoard_.setFixedCell(cr, cc, editorTool_ - 2);
                 }
             }
+            
             // Part creation area
-            float pcx = eox + editorCols_ * ecs + 100.f;
+            float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
+            if (pcx < 650.f) pcx = 650.f;
+            
             // Part shape grid
-            float psx = pcx, psy = 200.f;
-            int pr = (int)((m.y - psy) / 30.f);
-            int pc = (int)((m.x - psx) / 30.f);
-            if (pr >= 0 && pr < editorPartH_ && pc >= 0 && pc < editorPartW_) {
+            float psx = pcx, psgy = 300.f;
+            int pr = (int)((m.y - psgy) / 40.f);
+            int pc = (int)((m.x - psx) / 40.f);
+            if (m.y >= psgy && m.x >= psx && pr >= 0 && pr < editorPartH_ && pc >= 0 && pc < editorPartW_) {
                 if (pr < (int)editorPartShape_.size() && pc < (int)editorPartShape_[0].size())
                     editorPartShape_[pr][pc] ^= 1;
             }
+            
             // Add part button
-            if (isMouseOver(pcx, psy + editorPartH_ * 30.f + 10, 100, 35)) {
+            if (isMouseOver(pcx, psgy + editorPartH_ * 40.f + 20, 140, 45)) {
                 bool hasCell = false;
                 for (auto& row : editorPartShape_)
                     for (auto v : row) if (v) hasCell = true;
@@ -391,18 +448,25 @@ void Game::handleEditorEvent(const sf::Event& ev) {
                     editorPartShape_.assign(editorPartH_, std::vector<uint8_t>(editorPartW_, 0));
                 }
             }
+            
             // Part size +/-
-            if (isMouseOver(pcx, 150, 30, 25)) editorPartW_ = std::max(1, editorPartW_-1);
-            if (isMouseOver(pcx+35, 150, 30, 25)) editorPartW_ = std::min(6, editorPartW_+1);
-            if (isMouseOver(pcx+80, 150, 30, 25)) editorPartH_ = std::max(1, editorPartH_-1);
-            if (isMouseOver(pcx+115, 150, 30, 25)) editorPartH_ = std::min(6, editorPartH_+1);
+            float psy = 240.f;
+            if (isMouseOver(pcx+50, psy, 35, 35)) editorPartW_ = std::max(1, editorPartW_-1);
+            if (isMouseOver(pcx+90, psy, 35, 35)) editorPartW_ = std::min(6, editorPartW_+1);
+            if (isMouseOver(pcx+190, psy, 35, 35)) editorPartH_ = std::max(1, editorPartH_-1);
+            if (isMouseOver(pcx+230, psy, 35, 35)) editorPartH_ = std::min(6, editorPartH_+1);
             editorPartShape_.resize(editorPartH_);
-            for (auto& r : editorPartShape_) r.resize(editorPartW_, 0);
+            for (auto& r : editorPartShape_) r.resize(editorPartW_, 0); // Resize shape immediately
+            
             // Part color
-            if (isMouseOver(pcx+160, 150, 30, 25)) editorPartColor_ = (editorPartColor_+1) % editorColors_;
+            if (isMouseOver(pcx+380, psy, 110, 35)) editorPartColor_ = (editorPartColor_+1) % editorColors_;
+            
+            // Bottom Buttons
+            float btnY2 = eoy + std::max(editorRows_, 5) * ecs + 50.f;
+            if (btnY2 < psgy + editorPartH_*40 + 100.f) btnY2 = psgy + editorPartH_*40 + 100.f;
+            
             // Export button
-            float btnY2 = eoy + editorRows_ * ecs + 30.f;
-            if (isMouseOver(eox, btnY2, 120, 40)) {
+            if (isMouseOver(eox, btnY2, 140, 50)) {
                 try {
                     exportLevel("Levels/custom.txt", editorBoard_, editorParts_);
                     statusMsg_ = "Exported to Levels/custom.txt";
@@ -413,7 +477,7 @@ void Game::handleEditorEvent(const sf::Event& ev) {
                 }
             }
             // Test Play button
-            if (isMouseOver(eox+140, btnY2, 120, 40)) {
+            if (isMouseOver(eox+160, btnY2, 140, 50)) {
                 try {
                     exportLevel("Levels/custom.txt", editorBoard_, editorParts_);
                     scanLevels();
@@ -423,7 +487,7 @@ void Game::handleEditorEvent(const sf::Event& ev) {
                 }
             }
             // Back button
-            if (isMouseOver(eox+280, btnY2, 120, 40)) scene_ = Scene::MainMenu;
+            if (isMouseOver(eox+320, btnY2, 140, 50)) scene_ = Scene::MainMenu;
         }
     }
 }
@@ -431,8 +495,8 @@ void Game::handleEditorEvent(const sf::Event& ev) {
 void Game::handleVictoryEvent(const sf::Event& ev) {
     if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
         if (mp->button == sf::Mouse::Button::Left) {
-            if (isMouseOver(440, 500, 200, 50)) scene_ = Scene::LevelSelect;
-            if (isMouseOver(440, 570, 200, 50)) scene_ = Scene::MainMenu;
+            if (isMouseOver(540, 450, 200, 50)) scene_ = Scene::LevelSelect;
+            if (isMouseOver(540, 520, 200, 50)) scene_ = Scene::MainMenu;
         }
     }
 }
@@ -456,4 +520,5 @@ void Game::run() {
 }
 
 } // namespace ark
+
 

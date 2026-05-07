@@ -25,6 +25,7 @@ namespace ark {
         int colorCount() const { return colorCount_; }
 
         // ---- ½L­±ªì©l¤Æ ----
+        void setEmptyCell(int r, int c);
         void setBlockedCell(int r, int c);
         void setFixedCell(int r, int c, int colorIndex);
         void setTargetRowCount(int colorIndex, int row, int count);

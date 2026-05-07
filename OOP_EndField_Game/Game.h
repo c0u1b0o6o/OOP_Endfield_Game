@@ -105,6 +105,7 @@ private:
     // ---- 關卡選擇 UI ----
     int menuHover_ = -1;
     int levelHover_ = -1;
+    float levelScrollY_ = 0.f;
 
     // ---- Editor ----
     int editorRows_ = 5, editorCols_ = 5, editorColors_ = 1;
@@ -115,6 +116,7 @@ private:
     int editorPartW_ = 2, editorPartH_ = 2;
     Shape editorPartShape_;
     bool editorDrawingPart_ = false;
+    float editorScrollY_ = 0.f;
 
     // ---- 方法 ----
     void loadFont();
