@@ -402,8 +402,6 @@ void Game::renderEditor() {
     ccl.setFillColor(Colors::text()); ccl.setPosition(sf::Vector2f(480, cy+8)); window_.draw(ccl);
     renderButton(580, cy, 40, 40, "-", false); renderButton(630, cy, 40, 40, "+", false);
 
-    renderButton(710, cy, 140, 40, "Apply Size", false);
-
     // Editor board (Y = 190)
     float eox = 60.f, eoy = 190.f, ecs = 50.f;
     if (editorBoard_.rows() > 0)
@@ -500,6 +498,7 @@ void Game::renderEditor() {
 
     // Bottom buttons
     float btnY2 = eoy + std::max(editorRows_, 5) * ecs + 50.f;
+    if (btnY2 < psgy + editorPartH_*40 + 100.f) btnY2 = psgy + editorPartH_*40 + 100.f;
 
     renderButton(eox, btnY2, 140, 50, "Export", isMouseOver(eox, btnY2, 140, 50));
     renderButton(eox+160, btnY2, 140, 50, "Test Play", isMouseOver(eox+160, btnY2, 140, 50));
