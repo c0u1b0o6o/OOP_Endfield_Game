@@ -21,6 +21,25 @@ void Game::loadSounds() {
     if (sbPick_.loadFromFile("Assets/sfx/pick.wav")) sndPick_.emplace(sbPick_);
     if (sbRotate_.loadFromFile("Assets/sfx/rotate.wav")) sndRotate_.emplace(sbRotate_);
     if (sbWin_.loadFromFile("Assets/sfx/win.wav")) sndWin_.emplace(sbWin_);
+    // 1. 載入 Click 音效 (SFML 3: 確保 Buffer 載入成功後，再用 emplace 建構 Sound)
+    if (sbClick_.loadFromFile("Assets/sfx/click.wav")) {
+        sndClick_.emplace(sbClick_);
+    }
+
+    // 2. 載入並播放 BGM
+    bgm_.emplace(); // 先將 optional 內的 sf::Music 實例化
+
+    // SFML 音樂檔案較大，必須用 openFromFile (串流) 而不能用 loadFromFile
+    // 支援 .ogg, .wav, .flac (.ogg 效能最好)
+    if (bgm_->openFromFile("Assets/music/bgm.wav")) {
+        bgm_->setLooping(true);  // 設定無限循環
+        bgm_->setVolume(40.f);   // 設定音量大小 (0 ~ 100)
+        bgm_->play();            // 遊戲一開就播放
+    }
+    else {
+        // 如果找不到檔案，在終端機報錯提示一下
+        statusMsg_ = "Warning: BGM load failed!";
+    }
 }
 
 void Game::loadFont() {
@@ -273,6 +292,25 @@ void Game::handleLevelSelectEvent(const sf::Event& ev) {
             for (int i = 0; i < (int)levelFiles_.size(); ++i) {
                 float y = 100.f + i * 60.f + levelScrollY_;
                 if (isMouseOver(390, y, 500, 50)) {
+                    loadLevel(levelFiles_[i]);
+                    return;
+                }
+            }
+        }
+    }
+    if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
+        if (mp->button == sf::Mouse::Button::Left) {
+            // 【SFML 3 修正】座標對齊繪圖的 540, 680，並觸發音效
+            if (isMouseOver(540, 680, 200, 40)) {
+                if (sndClick_) sndClick_->play();
+                scene_ = Scene::MainMenu;
+                return;
+            }
+            // Level buttons
+            for (int i = 0; i < (int)levelFiles_.size(); ++i) {
+                float y = 100.f + i * 60.f + levelScrollY_;
+                if (isMouseOver(390, y, 500, 50)) {
+                    if (sndClick_) sndClick_->play(); // 加上按鈕音效
                     loadLevel(levelFiles_[i]);
                     return;
                 }
