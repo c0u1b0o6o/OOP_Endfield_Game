@@ -232,7 +232,10 @@ void Game::handleMainMenuEvent(const sf::Event& ev) {
         if (mp->button == sf::Mouse::Button::Left) {
             float cx = 640.f, bw = 300.f, bh = 55.f;
             if (isMouseOver(cx-bw/2, 300, bw, bh)) scene_ = Scene::LevelSelect;
-            else if (isMouseOver(cx-bw/2, 380, bw, bh)) scene_ = Scene::Editor;
+            else if (isMouseOver(cx-bw/2, 380, bw, bh)) {
+                scene_ = Scene::Editor;
+                if (editorBoard_.rows() == 0) editorBoard_ = Board(editorRows_, editorCols_, editorColors_);
+            }
             else if (isMouseOver(cx-bw/2, 460, bw, bh)) window_.close();
         }
     }
@@ -366,17 +369,37 @@ void Game::handleEditorEvent(const sf::Event& ev) {
             
             // Size controls
             float cy = 120.f;
+            int oldR = editorRows_, oldC = editorCols_, oldCol = editorColors_;
             if (isMouseOver(120, cy, 40, 40)) { editorRows_ = std::max(2, editorRows_-1); }
             if (isMouseOver(170, cy, 40, 40)) { editorRows_ = std::min(10, editorRows_+1); }
             if (isMouseOver(350, cy, 40, 40)) { editorCols_ = std::max(2, editorCols_-1); }
             if (isMouseOver(400, cy, 40, 40)) { editorCols_ = std::min(10, editorCols_+1); }
             if (isMouseOver(580, cy, 40, 40)) { editorColors_ = std::max(1, editorColors_-1); }
             if (isMouseOver(630, cy, 40, 40)) { editorColors_ = std::min(4, editorColors_+1); }
-            
-            // Apply board size
-            if (isMouseOver(710, cy, 140, 40)) {
-                editorBoard_ = Board(editorRows_, editorCols_, editorColors_);
-                editorParts_.clear();
+
+            if (oldR != editorRows_ || oldC != editorCols_ || oldCol != editorColors_ || editorBoard_.rows() == 0) {
+                Board nb(editorRows_, editorCols_, editorColors_);
+                if (editorBoard_.rows() > 0) {
+                    for(int r = 0; r < std::min(editorBoard_.rows(), editorRows_); ++r) {
+                        for(int c = 0; c < std::min(editorBoard_.cols(), editorCols_); ++c) {
+                            int t = editorBoard_.cellType(r,c);
+                            if(t == -1) nb.setEmptyCell(r,c);
+                            else if(t == -2) nb.setBlockedCell(r,c);
+                            else if(t == -3) {
+                                int cCol = editorBoard_.cellColor(r,c);
+                                if(cCol < editorColors_) nb.setFixedCell(r, c, cCol);
+                            }
+                        }
+                    }
+                }
+                editorBoard_ = nb;
+                editorPartColor_ = std::min(editorPartColor_, editorColors_ - 1);
+
+                // Clear parts that now have invalid colors
+                auto it = std::remove_if(editorParts_.begin(), editorParts_.end(), [this](const Part& p) {
+                    return p.colorIndex() >= editorColors_;
+                });
+                editorParts_.erase(it, editorParts_.end());
             }
             
             // Board grid click
