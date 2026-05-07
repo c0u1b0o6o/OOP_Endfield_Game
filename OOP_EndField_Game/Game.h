@@ -115,6 +115,7 @@ private:
     int editorPartW_ = 2, editorPartH_ = 2;
     Shape editorPartShape_;
     bool editorDrawingPart_ = false;
+    float editorScrollY_ = 0.f;
 
     // ---- ¤èªk ----
     void loadFont();

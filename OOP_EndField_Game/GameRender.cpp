@@ -461,18 +461,26 @@ void Game::renderEditor() {
     window_.draw(pl);
 
     // Draw little icons of editor parts
+    float partsStartY = psgy + editorPartH_*40 + 80;
+
+    // Set up a view for clipping the scrollable area
+    sf::View defaultView = window_.getView();
+    sf::View partsView(sf::FloatRect({pcx, partsStartY}, {1280.f - pcx, 800.f - partsStartY}));
+    partsView.setViewport(sf::FloatRect({pcx / 1280.f, partsStartY / 800.f}, {(1280.f - pcx) / 1280.f, (800.f - partsStartY) / 800.f}));
+    window_.setView(partsView);
+
     float lpx = pcx;
-    float lpy = psgy + editorPartH_*40 + 80;
+    float lpy = partsStartY + editorScrollY_;
     for (size_t i = 0; i < editorParts_.size(); ++i) {
         if (lpx + 60 > 1200) { lpx = pcx; lpy += 60; }
-        
+
         sf::RectangleShape pBg(sf::Vector2f(50, 50));
         pBg.setPosition(sf::Vector2f(lpx, lpy));
         pBg.setFillColor(Colors::panel());
         pBg.setOutlineThickness(1.f);
         pBg.setOutlineColor(sf::Color(60,65,80));
         window_.draw(pBg);
-        
+
         auto& pt = editorParts_[i];
         float miniCs = std::min(40.f / pt.height(), 40.f / pt.width());
         miniCs = std::min(miniCs, 12.f);
@@ -488,9 +496,10 @@ void Game::renderEditor() {
         lpx += 60;
     }
 
+    window_.setView(defaultView);
+
     // Bottom buttons
     float btnY2 = eoy + std::max(editorRows_, 5) * ecs + 50.f;
-    if (btnY2 < lpy + 80.f) btnY2 = lpy + 80.f;
 
     renderButton(eox, btnY2, 140, 50, "Export", isMouseOver(eox, btnY2, 140, 50));
     renderButton(eox+160, btnY2, 140, 50, "Test Play", isMouseOver(eox+160, btnY2, 140, 50));

@@ -335,6 +335,23 @@ void Game::handleEditorEvent(const sf::Event& ev) {
     if (auto* kp = ev.getIf<sf::Event::KeyPressed>()) {
         if (kp->code == sf::Keyboard::Key::Escape) scene_ = Scene::MainMenu;
     }
+    if (auto* sc = ev.getIf<sf::Event::MouseWheelScrolled>()) {
+        auto m = mousePos();
+        float eox = 60.f, ecs = 50.f;
+        float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
+        if (pcx < 650.f) pcx = 650.f;
+        float partsStartY = 300.f + editorPartH_*40.f + 80.f;
+        if (m.x >= pcx && m.y >= partsStartY) {
+            editorScrollY_ += sc->delta * 30.f; // wheel scrolling sensitivity
+            if (editorScrollY_ > 0.f) editorScrollY_ = 0.f;
+
+            // Calculate roughly the max required height to prevent endless scroll
+            int iconsPerRow = std::max(1, (int)((1280.f - pcx) / 60.f));
+            int maxRows = std::ceil((float)editorParts_.size() / iconsPerRow);
+            float maxScroll = -std::max(0.f, (maxRows * 60.f) - (800.f - partsStartY) + 80.f);
+            if (editorScrollY_ < maxScroll) editorScrollY_ = maxScroll;
+        }
+    }
     if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
         if (mp->button == sf::Mouse::Button::Left) {
             auto m = mousePos();

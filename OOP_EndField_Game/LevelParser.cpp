@@ -51,10 +51,10 @@ namespace ark {
         while (fin >> colorIdx >> m2 >> n2) {
             Shape shape(m2, std::vector<uint8_t>(n2, 0));
             for (int r = 0; r < m2; ++r) {
-                std::string line;
-                fin >> line;
-                for (int c = 0; c < n2 && c < (int)line.size(); ++c)
-                    shape[r][c] = (line[c] == '1') ? 1 : 0;
+                for (int c = 0; c < n2; ++c) {
+                    int val;
+                    if (fin >> val) shape[r][c] = val ? 1 : 0;
+                }
             }
             parts.emplace_back(partId++, colorIdx, shape);
         }
