@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <filesystem>
+#include <optional>
 
 namespace ark {
 
@@ -67,6 +68,11 @@ private:
     float cellSize_ = 50.f;
     float boardOffX_ = 0.f, boardOffY_ = 0.f;
 
+    // ---- 音效 ----
+    sf::SoundBuffer sbPlace_, sbError_, sbPick_, sbRotate_, sbWin_, sbClick_;
+    std::optional<sf::Sound> sndPlace_, sndError_, sndPick_, sndRotate_, sndWin_, sndClick_;
+    std::optional<sf::Music> bgm_;
+
     // ---- 場景 ----
     Scene scene_ = Scene::MainMenu;
     std::string startLevelPath_;
@@ -120,6 +126,7 @@ private:
 
     // ---- 方法 ----
     void loadFont();
+    void loadSounds();
     void scanLevels();
     void loadLevel(const std::string& path);
     void resetLevel();

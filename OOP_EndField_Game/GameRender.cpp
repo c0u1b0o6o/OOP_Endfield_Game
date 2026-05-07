@@ -282,7 +282,8 @@ void Game::renderMainMenu() {
 void Game::renderLevelSelect() {
     sf::Text title(font_, "Select Level", 32);
     title.setFillColor(Colors::accent());
-    title.setPosition(sf::Vector2f(390, 30));
+    auto bounds = title.getLocalBounds();
+    title.setPosition(sf::Vector2f(640.f - bounds.size.x / 2.f - bounds.position.x, 30.f));
     window_.draw(title);
 
     renderButton(40, 380, 100, 40, "Back", isMouseOver(40,380,100,40));
@@ -294,6 +295,15 @@ void Game::renderLevelSelect() {
         window_.draw(none);
         return;
     }
+
+    // --- 【新增】1. 儲存預設視角 ---
+    sf::View defaultView = window_.getView();
+
+    // --- 【新增】2. 建立一個限定範圍的視角 (從 Y=90 開始，高度 570) ---
+    // SFML 3 寫法： sf::FloatRect({left, top}, {width, height})
+    sf::View listView(sf::FloatRect({ 0.f, 90.f }, { 1280.f, 570.f }));
+    listView.setViewport(sf::FloatRect({ 0.f, 90.f / 800.f }, { 1.f, 570.f / 800.f }));
+    window_.setView(listView);
 
     for (int i = 0; i < (int)levelFiles_.size(); ++i) {
         float y = 100.f + i * 60.f + levelScrollY_;
@@ -311,6 +321,8 @@ void Game::renderLevelSelect() {
         txt.setPosition(sf::Vector2f(410, y + 14));
         window_.draw(txt);
     }
+    // --- 【新增】3. 畫完列表後，切換回原本的視角 ---
+    window_.setView(defaultView);
 }
 
 void Game::renderPlaying() {
