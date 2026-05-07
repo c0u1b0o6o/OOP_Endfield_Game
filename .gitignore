@@ -13,7 +13,6 @@ x64/
 x86/
 Debug/
 Release/
-*.vcxproj
 
 # 專案特定
 savegame.txt
