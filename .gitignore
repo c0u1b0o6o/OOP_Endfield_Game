@@ -1,0 +1,20 @@
+# 編譯產物
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.o
+
+# IDE 與 建置工具
+.vs/
+out/
+build/
+x64/
+x86/
+Debug/
+Release/
+*.sln
+*.vcxproj
+
+# 專案特定
+savegame.txt
