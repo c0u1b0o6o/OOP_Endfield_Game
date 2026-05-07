@@ -69,8 +69,9 @@ private:
     float boardOffX_ = 0.f, boardOffY_ = 0.f;
 
     // ---- ­µ®Ä ----
-    sf::SoundBuffer sbPlace_, sbError_, sbPick_, sbRotate_, sbWin_;
-    std::optional<sf::Sound> sndPlace_, sndError_, sndPick_, sndRotate_, sndWin_;
+    sf::SoundBuffer sbPlace_, sbError_, sbPick_, sbRotate_, sbWin_, sbClick_;
+    std::optional<sf::Sound> sndPlace_, sndError_, sndPick_, sndRotate_, sndWin_, sndClick_;
+    std::optional<sf::Music> bgm_;
 
     // ---- ³õ´º ----
     Scene scene_ = Scene::MainMenu;

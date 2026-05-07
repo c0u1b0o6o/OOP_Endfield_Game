@@ -282,10 +282,10 @@ void Game::renderMainMenu() {
 void Game::renderLevelSelect() {
     sf::Text title(font_, "Select Level", 32);
     title.setFillColor(Colors::accent());
-    title.setPosition(sf::Vector2f(390, 30));
+    title.setPosition(sf::Vector2f(640.f - title.getLocalBounds().size.x / 2.f, 30.f));
     window_.draw(title);
 
-    renderButton(40, 380, 100, 40, "Back", isMouseOver(40,380,100,40));
+    renderButton(540, 680, 200, 40, "Back", isMouseOver(540, 680, 200, 40));
 
     if (levelFiles_.empty()) {
         sf::Text none(font_, "No .txt files found in Levels/ folder", 18);
