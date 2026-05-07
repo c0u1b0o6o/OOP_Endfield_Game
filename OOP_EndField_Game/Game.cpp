@@ -16,11 +16,11 @@ Game::Game() {
 }
 
 void Game::loadSounds() {
-    if (sbPlace_.loadFromFile("Assets/sfx/place.wav")) sndPlace_.setBuffer(sbPlace_);
-    if (sbError_.loadFromFile("Assets/sfx/error.wav")) sndError_.setBuffer(sbError_);
-    if (sbPick_.loadFromFile("Assets/sfx/pick.wav")) sndPick_.setBuffer(sbPick_);
-    if (sbRotate_.loadFromFile("Assets/sfx/rotate.wav")) sndRotate_.setBuffer(sbRotate_);
-    if (sbWin_.loadFromFile("Assets/sfx/win.wav")) sndWin_.setBuffer(sbWin_);
+    if (sbPlace_.loadFromFile("Assets/sfx/place.wav")) sndPlace_.emplace(sbPlace_);
+    if (sbError_.loadFromFile("Assets/sfx/error.wav")) sndError_.emplace(sbError_);
+    if (sbPick_.loadFromFile("Assets/sfx/pick.wav")) sndPick_.emplace(sbPick_);
+    if (sbRotate_.loadFromFile("Assets/sfx/rotate.wav")) sndRotate_.emplace(sbRotate_);
+    if (sbWin_.loadFromFile("Assets/sfx/win.wav")) sndWin_.emplace(sbWin_);
 }
 
 void Game::loadFont() {
@@ -111,7 +111,7 @@ void Game::selectPart(int idx) {
         placements_[idx].placed = false;
         placedCount_--;
     }
-    sndPick_.play();
+    if (sndPick_) sndPick_->play();
     selectedPart_ = idx;
     dragging_ = true;
     idleTimer_ = 0.f;
@@ -129,12 +129,12 @@ void Game::tryPlace() {
     int ac = ghostCol_ - p.pivotCol();
     std::string err;
     if (board_.canPlace(p, ar, ac, &err)) {
-        sndPlace_.play();
+        if (sndPlace_) sndPlace_->play();
         board_.placePart(p, ar, ac);
         placements_[selectedPart_] = {true, ar, ac, 0};
         placedCount_++;
         if (board_.checkWinCondition((int)parts_.size(), placedCount_)) {
-            sndWin_.play();
+            if (sndWin_) sndWin_->play();
             scene_ = Scene::Victory;
             // Print solution to console
             std::cout << "=== Solution ===" << std::endl;
@@ -143,7 +143,7 @@ void Game::tryPlace() {
         deselectPart();
         idleTimer_ = 0.f;
     } else {
-        sndError_.play();
+        if (sndError_) sndError_->play();
         statusMsg_ = err;
         statusTimer_ = 2.f;
     }
@@ -151,7 +151,7 @@ void Game::tryPlace() {
 
 void Game::rotateCurrent() {
     if (selectedPart_ < 0) return;
-    sndRotate_.play();
+    if (sndRotate_) sndRotate_->play();
     parts_[selectedPart_].rotateRight();
     rotating_ = true;
     rotAnimAngle_ = 90.f;

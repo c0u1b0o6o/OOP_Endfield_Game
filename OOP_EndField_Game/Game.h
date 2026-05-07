@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <filesystem>
+#include <optional>
 
 namespace ark {
 
@@ -69,7 +70,7 @@ private:
 
     // ---- ­µ®Ä ----
     sf::SoundBuffer sbPlace_, sbError_, sbPick_, sbRotate_, sbWin_;
-    sf::Sound sndPlace_, sndError_, sndPick_, sndRotate_, sndWin_;
+    std::optional<sf::Sound> sndPlace_, sndError_, sndPick_, sndRotate_, sndWin_;
 
     // ---- ³õ´º ----
     Scene scene_ = Scene::MainMenu;
