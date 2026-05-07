@@ -29,7 +29,6 @@ namespace ark {
 		const int oldH = height_, oldW = width_;
 		const int oldPivotR = pivotRow_, oldPivotC = pivotCol_;
 
-		// 90° 順時針：new[c][H-1-r] = old[r][c]
 		Shape rotated(oldW, std::vector<uint8_t>(oldH, 0));
 		for (int r = 0; r < oldH; ++r)
 			for (int c = 0; c < oldW; ++c)
@@ -40,10 +39,9 @@ namespace ark {
 		width_ = oldH;
 		recomputePivotAndCount();
 
-		// 舊 pivot 旋轉後在新 shape 中的位置
 		const int rotatedOldPivotR = oldPivotC;
 		const int rotatedOldPivotC = oldH - 1 - oldPivotR;
-		// 覆蓋 pivot 為舊 pivot 旋轉後的實際位置 (用戶感知的中心)
+
 		pivotRow_ = rotatedOldPivotR;
 		pivotCol_ = rotatedOldPivotC;
 
