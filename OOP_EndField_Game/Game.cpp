@@ -284,33 +284,20 @@ void Game::handleLevelSelectEvent(const sf::Event& ev) {
         if (levelScrollY_ > 0) levelScrollY_ = 0;
         if (levelScrollY_ < -maxScroll) levelScrollY_ = -maxScroll;
     }
+    // 【修正】：只保留一個 MouseButtonPressed 區塊，並把舊的刪掉
     if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
         if (mp->button == sf::Mouse::Button::Left) {
-            // Back button
-            if (isMouseOver(40, 380, 100, 40)) { scene_ = Scene::MainMenu; return; }
-            // Level buttons
-            for (int i = 0; i < (int)levelFiles_.size(); ++i) {
-                float y = 100.f + i * 60.f + levelScrollY_;
-                if (isMouseOver(390, y, 500, 50)) {
-                    loadLevel(levelFiles_[i]);
-                    return;
-                }
-            }
-        }
-    }
-    if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
-        if (mp->button == sf::Mouse::Button::Left) {
-            // 【SFML 3 修正】座標對齊繪圖的 540, 680，並觸發音效
-            if (isMouseOver(540, 680, 200, 40)) {
+            // 返回按鈕
+            if (isMouseOver(540, 680, 200, 40)) { // 這裡使用你修正過的新座標
                 if (sndClick_) sndClick_->play();
                 scene_ = Scene::MainMenu;
                 return;
             }
-            // Level buttons
+            // 關卡按鈕
             for (int i = 0; i < (int)levelFiles_.size(); ++i) {
                 float y = 100.f + i * 60.f + levelScrollY_;
                 if (isMouseOver(390, y, 500, 50)) {
-                    if (sndClick_) sndClick_->play(); // 加上按鈕音效
+                    if (sndClick_) sndClick_->play(); // 播放音效
                     loadLevel(levelFiles_[i]);
                     return;
                 }
