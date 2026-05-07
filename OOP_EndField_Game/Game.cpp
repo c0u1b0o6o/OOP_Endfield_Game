@@ -280,7 +280,7 @@ namespace ark {
 
     void Game::handleLevelSelectEvent(const sf::Event& ev) {
         if (auto* sc = ev.getIf<sf::Event::MouseWheelScrolled>()) {
-            float maxScroll = std::max(0.f, levelFiles_.size() * 60.f - 600.f);
+            float maxScroll = std::max(0.f, levelFiles_.size() * 60.f - 450.f);
             levelScrollY_ += sc->delta * 30.f;
             if (levelScrollY_ > 0) levelScrollY_ = 0;
             if (levelScrollY_ < -maxScroll) levelScrollY_ = -maxScroll;
