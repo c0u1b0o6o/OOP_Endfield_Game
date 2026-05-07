@@ -354,7 +354,7 @@ void Game::renderPlaying() {
         window_.draw(ht);
     }
 
-    renderButton(boardOffX_+480, btnY, 140, 50, "Menu",
+    renderButton(boardOffX_+480, btnY, 140, 50, "Back",
                  isMouseOver(boardOffX_+480, btnY, 140, 50));
 
     // Status message
