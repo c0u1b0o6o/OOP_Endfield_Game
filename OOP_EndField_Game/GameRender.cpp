@@ -282,33 +282,33 @@ void Game::renderMainMenu() {
 void Game::renderLevelSelect() {
     sf::Text title(font_, "Select Level", 32);
     title.setFillColor(Colors::accent());
-    title.setPosition(sf::Vector2f(200, 30));
+    title.setPosition(sf::Vector2f(390, 30));
     window_.draw(title);
 
-    renderButton(20, 20, 100, 40, "Back", isMouseOver(20,20,100,40));
+    renderButton(40, 380, 100, 40, "Back", isMouseOver(40,380,100,40));
 
     if (levelFiles_.empty()) {
         sf::Text none(font_, "No .txt files found in Levels/ folder", 18);
         none.setFillColor(Colors::error());
-        none.setPosition(sf::Vector2f(200, 150));
+        none.setPosition(sf::Vector2f(390, 150));
         window_.draw(none);
         return;
     }
 
     for (int i = 0; i < (int)levelFiles_.size(); ++i) {
-        float y = 100.f + i * 60.f;
-        bool hov = isMouseOver(200, y, 500, 50);
+        float y = 100.f + i * 60.f + levelScrollY_;
+        bool hov = isMouseOver(390, y, 500, 50);
         sf::RectangleShape bg(sf::Vector2f(500, 50));
-        bg.setPosition(sf::Vector2f(200, y));
+        bg.setPosition(sf::Vector2f(390, y));
         bg.setFillColor(hov ? sf::Color(45, 55, 65) : Colors::panel());
         bg.setOutlineColor(hov ? Colors::accent() : sf::Color(50,55,70));
         bg.setOutlineThickness(1.f);
         window_.draw(bg);
 
         auto path = std::filesystem::path(levelFiles_[i]);
-        sf::Text txt(font_, path.filename().string(), 18);
+        sf::Text txt(font_, sf::String(path.filename().wstring()), 18);
         txt.setFillColor(hov ? Colors::accentHover() : Colors::text());
-        txt.setPosition(sf::Vector2f(220, y + 14));
+        txt.setPosition(sf::Vector2f(410, y + 14));
         window_.draw(txt);
     }
 }
@@ -316,7 +316,8 @@ void Game::renderLevelSelect() {
 void Game::renderPlaying() {
     // Header
     auto path = std::filesystem::path(currentLevelPath_);
-    sf::Text header(font_, "Level: " + path.filename().string(), 20);
+    sf::String headerStr = L"Level: " + path.filename().wstring();
+    sf::Text header(font_, headerStr, 20);
     header.setFillColor(Colors::text());
     header.setPosition(sf::Vector2f(boardOffX_, 10));
     window_.draw(header);
@@ -533,8 +534,8 @@ void Game::renderVictory() {
     sub.setPosition(sf::Vector2f(640 - sb.size.x/2, 380));
     window_.draw(sub);
 
-    renderButton(440, 450, 200, 50, "Next Game", isMouseOver(440,450,200,50));
-    renderButton(440, 520, 200, 50, "Main Menu", isMouseOver(440,520,200,50));
+    renderButton(540, 450, 200, 50, "Next Game", isMouseOver(540,450,200,50));
+    renderButton(540, 520, 200, 50, "Main Menu", isMouseOver(540,520,200,50));
 }
 
 void Game::render() {

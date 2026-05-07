@@ -105,6 +105,7 @@ private:
     // ---- Ãö¥d¿ï¾Ü UI ----
     int menuHover_ = -1;
     int levelHover_ = -1;
+    float levelScrollY_ = 0.f;
 
     // ---- Editor ----
     int editorRows_ = 5, editorCols_ = 5, editorColors_ = 1;

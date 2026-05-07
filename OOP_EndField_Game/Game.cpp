@@ -17,7 +17,10 @@ Game::Game() {
 void Game::loadFont() {
     // Try multiple font paths
     std::vector<std::string> paths = {
-        "Assets/font.ttf",
+        "Assets/fonts/font.ttf",
+        "C:/Windows/Fonts/msjh.ttf",
+        "C:/Windows/Fonts/msyh.ttf",
+        "C:/Windows/Fonts/simhei.ttf",
         "C:/Windows/Fonts/consola.ttf",
         "C:/Windows/Fonts/arial.ttf",
         "C:/Windows/Fonts/segoeui.ttf"
@@ -242,14 +245,20 @@ void Game::handleMainMenuEvent(const sf::Event& ev) {
 }
 
 void Game::handleLevelSelectEvent(const sf::Event& ev) {
+    if (auto* sc = ev.getIf<sf::Event::MouseWheelScrolled>()) {
+        float maxScroll = std::max(0.f, levelFiles_.size() * 60.f - 600.f);
+        levelScrollY_ += sc->delta * 30.f;
+        if (levelScrollY_ > 0) levelScrollY_ = 0;
+        if (levelScrollY_ < -maxScroll) levelScrollY_ = -maxScroll;
+    }
     if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
         if (mp->button == sf::Mouse::Button::Left) {
             // Back button
-            if (isMouseOver(20, 20, 100, 40)) { scene_ = Scene::MainMenu; return; }
+            if (isMouseOver(40, 380, 100, 40)) { scene_ = Scene::MainMenu; return; }
             // Level buttons
             for (int i = 0; i < (int)levelFiles_.size(); ++i) {
-                float y = 100.f + i * 60.f;
-                if (isMouseOver(200, y, 500, 50)) {
+                float y = 100.f + i * 60.f + levelScrollY_;
+                if (isMouseOver(390, y, 500, 50)) {
                     loadLevel(levelFiles_[i]);
                     return;
                 }
@@ -486,8 +495,8 @@ void Game::handleEditorEvent(const sf::Event& ev) {
 void Game::handleVictoryEvent(const sf::Event& ev) {
     if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
         if (mp->button == sf::Mouse::Button::Left) {
-            if (isMouseOver(440, 450, 200, 50)) scene_ = Scene::LevelSelect;
-            if (isMouseOver(440, 520, 200, 50)) scene_ = Scene::MainMenu;
+            if (isMouseOver(540, 450, 200, 50)) scene_ = Scene::LevelSelect;
+            if (isMouseOver(540, 520, 200, 50)) scene_ = Scene::MainMenu;
         }
     }
 }
