@@ -458,8 +458,8 @@ namespace ark {
 			tcx += 70.f;
 		}
 
-		// Editor board (Y = 260)
-		float eox = 140.f, eoy = 260.f, ecs = 50.f;
+		// Editor board (Y = 320)
+		float eox = 140.f, eoy = 320.f, ecs = 50.f;
 		if (editorBoard_.rows() > 0) {
 			renderBoard(editorBoard_, eox, eoy, ecs);
 
@@ -504,11 +504,11 @@ namespace ark {
 
 		sf::Text pt(font_, "Create Part", 24);
 		pt.setFillColor(Colors::accent());
-		pt.setPosition(sf::Vector2f(pcx, 260));
+		pt.setPosition(sf::Vector2f(pcx, 320));
 		window_.draw(pt);
 
-		// W, H, Color (Y = 310)
-		float psy = 310.f;
+		// W, H, Color (Y = 370)
+		float psy = 370.f;
 		sf::Text pw(font_, "W: " + std::to_string(editorPartW_), 18);
 		pw.setFillColor(Colors::text()); pw.setPosition(sf::Vector2f(pcx, psy + 10)); window_.draw(pw);
 		renderButton(pcx + 50, psy, 35, 35, "-", false); renderButton(pcx + 90, psy, 35, 35, "+", false);
@@ -522,8 +522,8 @@ namespace ark {
 		pcol.setPosition(sf::Vector2f(pcx + 280, psy + 10)); window_.draw(pcol);
 		renderButton(pcx + 380, psy, 110, 35, "Next Color", false);
 
-		// Part shape grid (Y = 370)
-		float psgy = 370.f;
+		// Part shape grid (Y = 430)
+		float psgy = 430.f;
 		for (int r = 0; r < editorPartH_; r++) {
 			for (int c = 0; c < editorPartW_; c++) {
 				sf::RectangleShape cell(sf::Vector2f(38, 38));

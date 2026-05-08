@@ -419,7 +419,7 @@ namespace ark {
             float eox = 140.f, ecs = 50.f;
             float pcx = eox + std::max(editorCols_, 5) * ecs + 120.f;
             if (pcx < 700.f) pcx = 700.f;
-            float partsStartY = 370.f + editorPartH_ * 40.f + 80.f;
+            float partsStartY = 430.f + editorPartH_ * 40.f + 80.f;
             if (m.x >= pcx && m.y >= partsStartY) {
                 editorScrollY_ += sc->delta * 30.f;
                 if (editorScrollY_ > 0.f) editorScrollY_ = 0.f;
@@ -490,7 +490,7 @@ namespace ark {
                     tcx += 70.f;
                 }
 
-                float eox = 140.f, eoy = 260.f, ecs = 50.f;
+                float eox = 140.f, eoy = 320.f, ecs = 50.f;
 
                 // Target Value adjustments
                 int tc = editorTargetColor_;
@@ -530,7 +530,7 @@ namespace ark {
                 float pcx = eox + std::max(editorCols_, 5) * ecs + 120.f;
                 if (pcx < 700.f) pcx = 700.f;
 
-                float psx = pcx, psgy = 370.f;
+                float psx = pcx, psgy = 430.f;
                 int pr = (int)((m.y - psgy) / 40.f);
                 int pc = (int)((m.x - psx) / 40.f);
                 if (m.y >= psgy && m.x >= psx && pr >= 0 && pr < editorPartH_ && pc >= 0 && pc < editorPartW_) {
@@ -551,7 +551,7 @@ namespace ark {
                 }
 
                 // Check for part deletion in parts view
-                float partsStartY = 370.f + editorPartH_ * 40.f + 80.f;
+                float partsStartY = 430.f + editorPartH_ * 40.f + 80.f;
                 if (m.x >= pcx && m.x < 1280.f && m.y >= partsStartY && m.y < 800.f) {
                     float lpx = pcx;
                     float lpy = partsStartY + editorScrollY_;
@@ -566,7 +566,7 @@ namespace ark {
                             for (size_t j = i; j < editorParts_.size(); ++j) {
                                 editorParts_[j] = Part(j, editorParts_[j].colorIndex(), editorParts_[j].shape());
                             }
-                            continue; // re-evaluate at same index
+                            break; // Stop evaluating to prevent deleting multiple parts in one click
                         }
 
                         lpx += 60;
@@ -574,7 +574,7 @@ namespace ark {
                     }
                 }
 
-                float psy = 310.f;
+                float psy = 370.f;
                 if (isMouseOver(pcx + 50, psy, 35, 35)) editorPartW_ = std::max(1, editorPartW_ - 1);
                 if (isMouseOver(pcx + 90, psy, 35, 35)) editorPartW_ = std::min(6, editorPartW_ + 1);
                 if (isMouseOver(pcx + 190, psy, 35, 35)) editorPartH_ = std::max(1, editorPartH_ - 1);
