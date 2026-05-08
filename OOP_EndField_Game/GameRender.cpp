@@ -5,9 +5,20 @@
 namespace ark {
 
 	void Game::renderButton(float x, float y, float w, float h, const std::string& label, bool hover) {
+		renderColorButton(x, y, w, h, label, hover, Colors::accent());
+	}
+
+	void Game::renderColorButton(float x, float y, float w, float h, const std::string& label, bool hover, sf::Color bgColor) {
 		sf::RectangleShape bg(sf::Vector2f(w, h));
 		bg.setPosition(sf::Vector2f(x, y));
-		bg.setFillColor(hover ? Colors::accentHover() : Colors::accent());
+
+		if (hover) {
+			bgColor.r = (uint8_t)std::min<int>(255, bgColor.r + 20);
+			bgColor.g = (uint8_t)std::min<int>(255, bgColor.g + 20);
+			bgColor.b = (uint8_t)std::min<int>(255, bgColor.b + 20);
+		}
+
+		bg.setFillColor(bgColor);
 		bg.setOutlineColor(sf::Color(255, 255, 255, 40));
 		bg.setOutlineThickness(1.f);
 		window_.draw(bg);
@@ -383,10 +394,24 @@ namespace ark {
 		}
 
 		// Controls help
-		sf::Text help(font_, "WASD:Move  R:Rotate  Enter/Click:Place  Esc:Deselect  F5:Reset  F1:Hint", 16);
+		sf::Text help(font_, "R:Rotate  Enter/Click:Place  Esc/Right Click:Deselect  F5:Reset  F1:Hint", 16);
 		help.setFillColor(sf::Color(80, 85, 100));
 		help.setPosition(sf::Vector2f(20, 760));
 		window_.draw(help);
+
+		if (showingNoSolution_) {
+			sf::RectangleShape overlay(sf::Vector2f(1280, 800));
+			overlay.setFillColor(sf::Color(0, 0, 0, 150));
+			window_.draw(overlay);
+
+			sf::Text msg(font_, "NO SOLUTION", 48);
+			msg.setFillColor(Colors::error());
+			auto cb = msg.getLocalBounds();
+			msg.setPosition(sf::Vector2f(640 - cb.size.x / 2.f, 300.f));
+			window_.draw(msg);
+
+			renderButton(540, 450, 200, 50, "Back", isMouseOver(540, 450, 200, 50));
+		}
 	}
 
 	void Game::renderEditor() {
@@ -401,7 +426,7 @@ namespace ark {
 		renderButton(tx, 60, 110, 40, "Block(X)", editorTool_ == 1); tx += 120;
 		for (int c = 0; c < editorColors_; c++) {
 			std::string l = "Fixed C" + std::to_string(c);
-			renderButton(tx, 60, 110, 40, l, editorTool_ == 2 + c);
+			renderColorButton(tx, 60, 110, 40, l, editorTool_ == 2 + c, Colors::partColor(c));
 			tx += 120;
 		}
 
@@ -429,7 +454,7 @@ namespace ark {
 		float tcx = 160.f;
 		for (int c = 0; c < editorColors_; c++) {
 			std::string l = "C" + std::to_string(c);
-			renderButton(tcx, tcy, 60, 40, l, editorTargetColor_ == c);
+			renderColorButton(tcx, tcy, 60, 40, l, editorTargetColor_ == c, Colors::partColor(c));
 			tcx += 70.f;
 		}
 
@@ -551,6 +576,17 @@ namespace ark {
 					window_.draw(mc);
 				}
 			}
+
+			// Delete Button
+			sf::RectangleShape delBtn(sf::Vector2f(12, 12));
+			delBtn.setPosition(sf::Vector2f(lpx + 35, lpy + 3));
+			delBtn.setFillColor(Colors::error());
+			window_.draw(delBtn);
+			sf::Text dx(font_, "X", 10);
+			dx.setFillColor(sf::Color::White);
+			dx.setPosition(sf::Vector2f(lpx + 37, lpy + 1));
+			window_.draw(dx);
+
 			lpx += 60;
 		}
 

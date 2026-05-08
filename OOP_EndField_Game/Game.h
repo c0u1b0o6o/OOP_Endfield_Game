@@ -102,6 +102,7 @@ private:
     float idleTimer_ = 0.f;
     bool hintAvailable_ = false;
     bool showingHint_ = false;
+    bool showingNoSolution_ = false;
     int hintPartIdx_ = -1;
 
     // ---- °Êµe ----
@@ -173,6 +174,8 @@ private:
     void renderPartPalette();
     void renderButton(float x, float y, float w, float h,
                       const std::string& label, bool hover);
+    void renderColorButton(float x, float y, float w, float h,
+                           const std::string& label, bool hover, sf::Color bgColor);
     bool isMouseOver(float x, float y, float w, float h) const;
 
     sf::Vector2f mousePos() const;

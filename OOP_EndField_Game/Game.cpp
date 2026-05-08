@@ -178,18 +178,26 @@ namespace ark {
     void Game::solveInBackground() {
         if (solutionSearched_) return;
         solutionSearched_ = true;
-        solutionFound_ = solver_.solve(initialBoard_, initialParts_, solution_);
-        if (solutionFound_) {
-            std::cout << "=== Auto-Solver Found Solution ===" << std::endl;
-            Board temp = initialBoard_;
-            std::vector<Part> tempParts = initialParts_;
-            for (auto& sp : solution_) {
-                Part p = tempParts[sp.partId].rotated(sp.rotation);
-                temp.placePart(p, sp.anchorRow, sp.anchorCol);
+
+        auto allSols = solver_.solveAll(initialBoard_, initialParts_);
+        if (!allSols.empty()) {
+            solutionFound_ = true;
+            solution_ = allSols[0];
+            std::cout << "=== Auto-Solver Found " << allSols.size() << " Solution(s) ===" << std::endl;
+            for (size_t i = 0; i < allSols.size(); ++i) {
+                std::cout << "[Solution " << (i + 1) << "]" << std::endl;
+                Board temp = initialBoard_;
+                std::vector<Part> tempParts = initialParts_;
+                for (auto& sp : allSols[i]) {
+                    Part p = tempParts[sp.partId].rotated(sp.rotation);
+                    temp.placePart(p, sp.anchorRow, sp.anchorCol);
+                }
+                temp.printSolution();
             }
-            temp.printSolution();
         }
         else {
+            solutionFound_ = false;
+            showingNoSolution_ = true;
             std::cout << "No solution found." << std::endl;
         }
     }
@@ -309,6 +317,18 @@ namespace ark {
     }
 
     void Game::handlePlayingEvent(const sf::Event& ev) {
+        if (showingNoSolution_) {
+            if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
+                if (mp->button == sf::Mouse::Button::Left) {
+                    if (isMouseOver(540, 450, 200, 50)) {
+                        showingNoSolution_ = false;
+                        if (sndClick_) sndClick_->play();
+                    }
+                }
+            }
+            return;
+        }
+
         if (auto* kp = ev.getIf<sf::Event::KeyPressed>()) {
             if (selectedPart_ >= 0) {
                 if (kp->code == sf::Keyboard::Key::W) ghostRow_--;
@@ -527,6 +547,30 @@ namespace ark {
                     if (hasCell) {
                         editorParts_.emplace_back((int)editorParts_.size(), editorPartColor_, editorPartShape_);
                         editorPartShape_.assign(editorPartH_, std::vector<uint8_t>(editorPartW_, 0));
+                    }
+                }
+
+                // Check for part deletion in parts view
+                float partsStartY = 370.f + editorPartH_ * 40.f + 80.f;
+                if (m.x >= pcx && m.x < 1280.f && m.y >= partsStartY && m.y < 800.f) {
+                    float lpx = pcx;
+                    float lpy = partsStartY + editorScrollY_;
+                    for (size_t i = 0; i < editorParts_.size(); ) {
+                        if (lpx + 60 > 1200) { lpx = pcx; lpy += 60; }
+
+                        // Delete Button bounds matching GameRender
+                        if (m.x >= lpx + 35 && m.x <= lpx + 47 && m.y >= lpy + 3 && m.y <= lpy + 15) {
+                            editorParts_.erase(editorParts_.begin() + i);
+                            if (sndClick_) sndClick_->play();
+                            // Update IDs
+                            for (size_t j = i; j < editorParts_.size(); ++j) {
+                                editorParts_[j] = Part(j, editorParts_[j].colorIndex(), editorParts_[j].shape());
+                            }
+                            continue; // re-evaluate at same index
+                        }
+
+                        lpx += 60;
+                        i++;
                     }
                 }
 
