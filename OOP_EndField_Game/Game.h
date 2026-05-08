@@ -119,6 +119,7 @@ private:
     std::vector<Part> editorParts_;
     int editorTool_ = 0; // 0=empty,1=blocked,2+=fixed color
     int editorPartColor_ = 0;
+    int editorTargetColor_ = 0;
     int editorPartW_ = 2, editorPartH_ = 2;
     Shape editorPartShape_;
     bool editorDrawingPart_ = false;

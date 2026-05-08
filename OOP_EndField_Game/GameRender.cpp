@@ -419,10 +419,53 @@ namespace ark {
 		ccl.setFillColor(Colors::text()); ccl.setPosition(sf::Vector2f(480, cy + 8)); window_.draw(ccl);
 		renderButton(580, cy, 40, 40, "-", false); renderButton(630, cy, 40, 40, "+", false);
 
-		// Editor board (Y = 190)
-		float eox = 60.f, eoy = 190.f, ecs = 50.f;
-		if (editorBoard_.rows() > 0)
+		// Target Color panel (Y = 170)
+		float tcy = 170.f;
+		sf::Text tcl(font_, "Target Color:", 20);
+		tcl.setFillColor(Colors::text());
+		tcl.setPosition(sf::Vector2f(20, tcy + 8));
+		window_.draw(tcl);
+
+		float tcx = 160.f;
+		for (int c = 0; c < editorColors_; c++) {
+			std::string l = "C" + std::to_string(c);
+			renderButton(tcx, tcy, 60, 40, l, editorTargetColor_ == c);
+			tcx += 70.f;
+		}
+
+		// Editor board (Y = 260)
+		float eox = 140.f, eoy = 260.f, ecs = 50.f;
+		if (editorBoard_.rows() > 0) {
 			renderBoard(editorBoard_, eox, eoy, ecs);
+
+			int tc = editorTargetColor_;
+			if (tc < editorBoard_.colorCount()) {
+				// Row Target adjustments (left side)
+				for (int r = 0; r < editorBoard_.rows(); ++r) {
+					float yy = eoy + r * ecs;
+					int tg = editorBoard_.targetRow(tc, r);
+					renderButton(eox - 95, yy + 10, 25, 30, "-", false);
+					sf::Text tt(font_, std::to_string(tg), 18);
+					tt.setFillColor(Colors::partColor(tc));
+					auto b = tt.getLocalBounds();
+					tt.setPosition(sf::Vector2f(eox - 65 + (25 - b.size.x) / 2.f, yy + 15));
+					window_.draw(tt);
+					renderButton(eox - 35, yy + 10, 25, 30, "+", false);
+				}
+				// Col Target adjustments (top side)
+				for (int c = 0; c < editorBoard_.cols(); ++c) {
+					float xx = eox + c * ecs;
+					int tg = editorBoard_.targetCol(tc, c);
+					renderButton(xx + 10, eoy - 95, 30, 25, "+", false);
+					sf::Text tt(font_, std::to_string(tg), 18);
+					tt.setFillColor(Colors::partColor(tc));
+					auto b = tt.getLocalBounds();
+					tt.setPosition(sf::Vector2f(xx + 15 + (20 - b.size.x) / 2.f, eoy - 65));
+					window_.draw(tt);
+					renderButton(xx + 10, eoy - 35, 30, 25, "-", false);
+				}
+			}
+		}
 		else {
 			sf::Text hint(font_, "Click 'Apply Size' to create board", 20);
 			hint.setFillColor(sf::Color(150, 155, 170));
@@ -431,16 +474,16 @@ namespace ark {
 		}
 
 		// Part creation panel
-		float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
-		if (pcx < 650.f) pcx = 650.f;
+		float pcx = eox + std::max(editorCols_, 5) * ecs + 120.f;
+		if (pcx < 700.f) pcx = 700.f;
 
 		sf::Text pt(font_, "Create Part", 24);
 		pt.setFillColor(Colors::accent());
-		pt.setPosition(sf::Vector2f(pcx, 190));
+		pt.setPosition(sf::Vector2f(pcx, 260));
 		window_.draw(pt);
 
-		// W, H, Color (Y = 240)
-		float psy = 240.f;
+		// W, H, Color (Y = 310)
+		float psy = 310.f;
 		sf::Text pw(font_, "W: " + std::to_string(editorPartW_), 18);
 		pw.setFillColor(Colors::text()); pw.setPosition(sf::Vector2f(pcx, psy + 10)); window_.draw(pw);
 		renderButton(pcx + 50, psy, 35, 35, "-", false); renderButton(pcx + 90, psy, 35, 35, "+", false);
@@ -454,8 +497,8 @@ namespace ark {
 		pcol.setPosition(sf::Vector2f(pcx + 280, psy + 10)); window_.draw(pcol);
 		renderButton(pcx + 380, psy, 110, 35, "Next Color", false);
 
-		// Part shape grid (Y = 300)
-		float psgy = 300.f;
+		// Part shape grid (Y = 370)
+		float psgy = 370.f;
 		for (int r = 0; r < editorPartH_; r++) {
 			for (int c = 0; c < editorPartW_; c++) {
 				sf::RectangleShape cell(sf::Vector2f(38, 38));
