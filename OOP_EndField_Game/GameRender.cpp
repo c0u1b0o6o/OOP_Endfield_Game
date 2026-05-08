@@ -195,25 +195,29 @@ namespace ark {
 	}
 
 	void Game::renderHints(float ox, float oy, float cs) {
-		if (!showingHint_ || !solutionFound_ || hintPartIdx_ < 0) return;
-		// Find solution placement for hint part
+		if (!showingHint_ || !solutionFound_ || solution_.empty()) return;
+
 		for (auto& sp : solution_) {
-			if (sp.partId == hintPartIdx_) {
-				Part p = initialParts_[sp.partId].rotated(sp.rotation);
-				for (int r = 0; r < p.height(); ++r) {
-					for (int c = 0; c < p.width(); ++c) {
-						if (!p.shape()[r][c]) continue;
-						float px = ox + (sp.anchorCol + c) * cs + 1;
-						float py = oy + (sp.anchorRow + r) * cs + 1;
-						sf::RectangleShape cell(sf::Vector2f(cs - 2, cs - 2));
-						cell.setPosition(sf::Vector2f(px, py));
-						cell.setFillColor(Colors::hintColor());
-						cell.setOutlineColor(sf::Color(80, 200, 120, 180));
-						cell.setOutlineThickness(2.f);
-						window_.draw(cell);
-					}
+			if (placements_[sp.partId].placed) continue;
+
+			Part p = initialParts_[sp.partId].rotated(sp.rotation);
+			for (int r = 0; r < p.height(); ++r) {
+				for (int c = 0; c < p.width(); ++c) {
+					if (!p.shape()[r][c]) continue;
+					float px = ox + (sp.anchorCol + c) * cs + 1;
+					float py = oy + (sp.anchorRow + r) * cs + 1;
+					sf::RectangleShape cell(sf::Vector2f(cs - 2, cs - 2));
+					cell.setPosition(sf::Vector2f(px, py));
+
+					sf::Color baseCol = Colors::partColor(p.colorIndex());
+					baseCol.a = 150; // Semi-transparent
+					cell.setFillColor(baseCol);
+
+					baseCol.a = 200;
+					cell.setOutlineColor(baseCol);
+					cell.setOutlineThickness(2.f);
+					window_.draw(cell);
 				}
-				break;
 			}
 		}
 	}

@@ -104,6 +104,7 @@ private:
     bool showingHint_ = false;
     bool showingNoSolution_ = false;
     int hintPartIdx_ = -1;
+    bool testingCustomLevel_ = false;
 
     // ---- °Êµe ----
     float rotAnimAngle_ = 0.f;

@@ -204,13 +204,7 @@ namespace ark {
 
     void Game::showHint() {
         if (!solutionFound_ || solution_.empty()) return;
-        for (auto& sp : solution_) {
-            if (!placements_[sp.partId].placed) {
-                hintPartIdx_ = sp.partId;
-                showingHint_ = true;
-                return;
-            }
-        }
+        showingHint_ = true;
     }
 
     sf::Vector2f Game::mousePos() const {
@@ -401,7 +395,12 @@ namespace ark {
                 }
                 if (isMouseOver(boardOffX_ + 480, btnY, 140, 50)) {
                     if (sndClick_) sndClick_->play();
-                    scene_ = Scene::LevelSelect;
+                    if (testingCustomLevel_) {
+                        scene_ = Scene::Editor;
+                        testingCustomLevel_ = false;
+                    } else {
+                        scene_ = Scene::LevelSelect;
+                    }
                 }
             }
             if (mp->button == sf::Mouse::Button::Right) {
@@ -606,6 +605,7 @@ namespace ark {
                         exportLevel("Levels/custom.txt", editorBoard_, editorParts_);
                         scanLevels();
                         loadLevel("Levels/custom.txt");
+                        testingCustomLevel_ = true;
                     }
                     catch (std::exception& e) {
                         statusMsg_ = e.what(); statusTimer_ = 3.f;
@@ -624,7 +624,12 @@ namespace ark {
             if (mp->button == sf::Mouse::Button::Left) {
                 if (isMouseOver(540, 450, 200, 50)) {
                     if (sndClick_) sndClick_->play();
-                    scene_ = Scene::LevelSelect;
+                    if (testingCustomLevel_) {
+                        scene_ = Scene::Editor;
+                        testingCustomLevel_ = false;
+                    } else {
+                        scene_ = Scene::LevelSelect;
+                    }
                 }
                 if (isMouseOver(540, 520, 200, 50)) {
                     if (sndClick_) sndClick_->play();
