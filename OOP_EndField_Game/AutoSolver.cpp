@@ -1,6 +1,8 @@
 #include "AutoSolver.h"
 #include <algorithm>
 #include <iostream>
+#include <set>
+#include <utility>
 
 namespace ark {
 
@@ -118,10 +120,35 @@ namespace ark {
     }
 
     std::vector<std::vector<SolverPlacement>> AutoSolver::solveAll(Board board, std::vector<Part> parts) {
-        std::vector<std::vector<SolverPlacement>> allSolutions;
+        std::vector<std::vector<SolverPlacement>> rawSolutions;
         std::vector<SolverPlacement> currentSolution;
         std::vector<bool> used(parts.size(), false);
-        dfsAll(board, parts, used, 0, currentSolution, allSolutions);
+        dfsAll(board, parts, used, 0, currentSolution, rawSolutions);
+
+        std::vector<std::vector<SolverPlacement>> allSolutions;
+        std::set<std::set<std::pair<int, std::vector<std::pair<int, int>>>>> seenSignatures;
+
+        for (auto& sol : rawSolutions) {
+            std::set<std::pair<int, std::vector<std::pair<int, int>>>> solSignature;
+            for (auto& sp : sol) {
+                Part p = parts[sp.partId].rotated(sp.rotation);
+                std::vector<std::pair<int, int>> cells;
+                for (int pr = 0; pr < p.height(); ++pr) {
+                    for (int pc = 0; pc < p.width(); ++pc) {
+                        if (p.shape()[pr][pc]) {
+                            cells.push_back({sp.anchorRow + pr, sp.anchorCol + pc});
+                        }
+                    }
+                }
+                std::sort(cells.begin(), cells.end());
+                solSignature.insert({p.colorIndex(), cells});
+            }
+
+            if (seenSignatures.find(solSignature) == seenSignatures.end()) {
+                seenSignatures.insert(solSignature);
+                allSolutions.push_back(sol);
+            }
+        }
         return allSolutions;
     }
 

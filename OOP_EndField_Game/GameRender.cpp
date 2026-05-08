@@ -198,8 +198,6 @@ namespace ark {
 		if (!showingHint_ || !solutionFound_ || solution_.empty()) return;
 
 		for (auto& sp : solution_) {
-			if (placements_[sp.partId].placed) continue;
-
 			Part p = initialParts_[sp.partId].rotated(sp.rotation);
 			for (int r = 0; r < p.height(); ++r) {
 				for (int c = 0; c < p.width(); ++c) {
