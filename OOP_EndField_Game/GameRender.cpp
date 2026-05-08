@@ -378,9 +378,13 @@ namespace ark {
 			disBtn.setPosition(sf::Vector2f(boardOffX_ + 320, btnY));
 			disBtn.setFillColor(sf::Color(50, 55, 65));
 			window_.draw(disBtn);
-			sf::Text ht(font_, "Hint (wait)", 18);
+
+			int rem = std::max(0, (int)std::ceil(30.f - idleTimer_));
+			std::string hintStr = "Hint (" + std::to_string(rem) + "s)";
+			sf::Text ht(font_, hintStr, 18);
 			ht.setFillColor(sf::Color(80, 85, 95));
-			ht.setPosition(sf::Vector2f(boardOffX_ + 340, btnY + 12));
+			auto b = ht.getLocalBounds();
+			ht.setPosition(sf::Vector2f(boardOffX_ + 320 + (140 - b.size.x) / 2.f, btnY + 12));
 			window_.draw(ht);
 		}
 
@@ -396,7 +400,7 @@ namespace ark {
 		}
 
 		// Controls help
-		sf::Text help(font_, "R:Rotate  Enter/Click:Place  Esc/Right Click:Deselect  F5:Reset  F1:Hint", 16);
+		sf::Text help(font_, "R:Rotate  Enter/Left Click:Place  Esc/Right Click:Deselect  F5:Reset  F1:Hint", 16);
 		help.setFillColor(sf::Color(80, 85, 100));
 		help.setPosition(sf::Vector2f(20, 760));
 		window_.draw(help);
