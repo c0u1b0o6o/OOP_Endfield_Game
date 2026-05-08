@@ -179,6 +179,13 @@ namespace ark {
 		int ac = ghostCol_ - p.pivotCol();
 		auto ghostCol = Colors::partGhost(p.colorIndex());
 
+		sf::Transform t;
+		if (rotating_) {
+			float cx = ox + ghostCol_ * cs + cs / 2.f;
+			float cy = oy + ghostRow_ * cs + cs / 2.f;
+			t.rotate(sf::degrees(-rotAnimAngle_), sf::Vector2f(cx, cy));
+		}
+
 		for (int r = 0; r < p.height(); ++r) {
 			for (int c = 0; c < p.width(); ++c) {
 				if (!p.shape()[r][c]) continue;
@@ -189,7 +196,7 @@ namespace ark {
 				cell.setFillColor(ghostCol);
 				cell.setOutlineColor(sf::Color(255, 255, 255, 60));
 				cell.setOutlineThickness(1.f);
-				window_.draw(cell);
+				window_.draw(cell, t);
 			}
 		}
 	}
