@@ -21,10 +21,18 @@ namespace ark {
         bool solve(Board board, std::vector<Part> parts,
                    std::vector<SolverPlacement>& solution);
 
+        // 求解：回傳所有的可行解
+        std::vector<std::vector<SolverPlacement>> solveAll(Board board, std::vector<Part> parts);
+
     private:
         bool dfs(Board& board, std::vector<Part>& parts,
                  std::vector<bool>& used, int placedCount,
                  std::vector<SolverPlacement>& solution);
+
+        void dfsAll(Board& board, std::vector<Part>& parts,
+                 std::vector<bool>& used, int placedCount,
+                 std::vector<SolverPlacement>& currentSolution,
+                 std::vector<std::vector<SolverPlacement>>& allSolutions);
 
         // 剪枝：檢查是否有任何列/欄已超出目標
         bool pruneCheck(const Board& board) const;

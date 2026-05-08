@@ -178,31 +178,33 @@ namespace ark {
     void Game::solveInBackground() {
         if (solutionSearched_) return;
         solutionSearched_ = true;
-        solutionFound_ = solver_.solve(initialBoard_, initialParts_, solution_);
-        if (solutionFound_) {
-            std::cout << "=== Auto-Solver Found Solution ===" << std::endl;
-            Board temp = initialBoard_;
-            std::vector<Part> tempParts = initialParts_;
-            for (auto& sp : solution_) {
-                Part p = tempParts[sp.partId].rotated(sp.rotation);
-                temp.placePart(p, sp.anchorRow, sp.anchorCol);
+
+        auto allSols = solver_.solveAll(initialBoard_, initialParts_);
+        if (!allSols.empty()) {
+            solutionFound_ = true;
+            solution_ = allSols[0];
+            std::cout << "=== Auto-Solver Found " << allSols.size() << " Solution(s) ===" << std::endl;
+            for (size_t i = 0; i < allSols.size(); ++i) {
+                std::cout << "[Solution " << (i + 1) << "]" << std::endl;
+                Board temp = initialBoard_;
+                std::vector<Part> tempParts = initialParts_;
+                for (auto& sp : allSols[i]) {
+                    Part p = tempParts[sp.partId].rotated(sp.rotation);
+                    temp.placePart(p, sp.anchorRow, sp.anchorCol);
+                }
+                temp.printSolution();
             }
-            temp.printSolution();
         }
         else {
+            solutionFound_ = false;
+            showingNoSolution_ = true;
             std::cout << "No solution found." << std::endl;
         }
     }
 
     void Game::showHint() {
         if (!solutionFound_ || solution_.empty()) return;
-        for (auto& sp : solution_) {
-            if (!placements_[sp.partId].placed) {
-                hintPartIdx_ = sp.partId;
-                showingHint_ = true;
-                return;
-            }
-        }
+        showingHint_ = true;
     }
 
     sf::Vector2f Game::mousePos() const {
@@ -309,6 +311,18 @@ namespace ark {
     }
 
     void Game::handlePlayingEvent(const sf::Event& ev) {
+        if (showingNoSolution_) {
+            if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
+                if (mp->button == sf::Mouse::Button::Left) {
+                    if (isMouseOver(540, 450, 200, 50)) {
+                        showingNoSolution_ = false;
+                        if (sndClick_) sndClick_->play();
+                    }
+                }
+            }
+            return;
+        }
+
         if (auto* kp = ev.getIf<sf::Event::KeyPressed>()) {
             if (selectedPart_ >= 0) {
                 if (kp->code == sf::Keyboard::Key::W) ghostRow_--;
@@ -381,7 +395,12 @@ namespace ark {
                 }
                 if (isMouseOver(boardOffX_ + 480, btnY, 140, 50)) {
                     if (sndClick_) sndClick_->play();
-                    scene_ = Scene::LevelSelect;
+                    if (testingCustomLevel_) {
+                        scene_ = Scene::Editor;
+                        testingCustomLevel_ = false;
+                    } else {
+                        scene_ = Scene::LevelSelect;
+                    }
                 }
             }
             if (mp->button == sf::Mouse::Button::Right) {
@@ -396,10 +415,10 @@ namespace ark {
         }
         if (auto* sc = ev.getIf<sf::Event::MouseWheelScrolled>()) {
             auto m = mousePos();
-            float eox = 60.f, ecs = 50.f;
-            float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
-            if (pcx < 650.f) pcx = 650.f;
-            float partsStartY = 300.f + editorPartH_ * 40.f + 80.f;
+            float eox = 140.f, ecs = 50.f;
+            float pcx = eox + std::max(editorCols_, 5) * ecs + 120.f;
+            if (pcx < 700.f) pcx = 700.f;
+            float partsStartY = 430.f + editorPartH_ * 40.f + 80.f;
             if (m.x >= pcx && m.y >= partsStartY) {
                 editorScrollY_ += sc->delta * 30.f;
                 if (editorScrollY_ > 0.f) editorScrollY_ = 0.f;
@@ -444,16 +463,61 @@ namespace ark {
                                 }
                             }
                         }
+                        for (int col = 0; col < std::min(editorBoard_.colorCount(), editorColors_); ++col) {
+                            for (int r = 0; r < std::min(editorBoard_.rows(), editorRows_); ++r)
+                                nb.setTargetRowCount(col, r, editorBoard_.targetRow(col, r));
+                            for (int c = 0; c < std::min(editorBoard_.cols(), editorCols_); ++c)
+                                nb.setTargetColCount(col, c, editorBoard_.targetCol(col, c));
+                        }
                     }
                     editorBoard_ = nb;
                     editorPartColor_ = std::min(editorPartColor_, editorColors_ - 1);
+                    editorTargetColor_ = std::min(editorTargetColor_, editorColors_ - 1);
                     auto it = std::remove_if(editorParts_.begin(), editorParts_.end(), [this](const Part& p) {
                         return p.colorIndex() >= editorColors_;
                         });
                     editorParts_.erase(it, editorParts_.end());
                 }
 
-                float eox = 60.f, eoy = 190.f, ecs = 50.f;
+                // Target Color Selection
+                float tcy = 170.f;
+                float tcx = 160.f;
+                for (int c = 0; c < editorColors_; c++) {
+                    if (isMouseOver(tcx, tcy, 60, 40)) {
+                        editorTargetColor_ = c;
+                    }
+                    tcx += 70.f;
+                }
+
+                float eox = 140.f, eoy = 320.f, ecs = 50.f;
+
+                // Target Value adjustments
+                int tc = editorTargetColor_;
+                if (tc < editorBoard_.colorCount()) {
+                    for (int r = 0; r < editorBoard_.rows(); ++r) {
+                        float yy = eoy + r * ecs;
+                        if (isMouseOver(eox - 95, yy + 10, 25, 30)) {
+                            int tg = editorBoard_.targetRow(tc, r);
+                            editorBoard_.setTargetRowCount(tc, r, std::max(0, tg - 1));
+                        }
+                        if (isMouseOver(eox - 35, yy + 10, 25, 30)) {
+                            int tg = editorBoard_.targetRow(tc, r);
+                            editorBoard_.setTargetRowCount(tc, r, tg + 1);
+                        }
+                    }
+                    for (int c = 0; c < editorBoard_.cols(); ++c) {
+                        float xx = eox + c * ecs;
+                        if (isMouseOver(xx + 10, eoy - 95, 30, 25)) {
+                            int tg = editorBoard_.targetCol(tc, c);
+                            editorBoard_.setTargetColCount(tc, c, tg + 1);
+                        }
+                        if (isMouseOver(xx + 10, eoy - 35, 30, 25)) {
+                            int tg = editorBoard_.targetCol(tc, c);
+                            editorBoard_.setTargetColCount(tc, c, std::max(0, tg - 1));
+                        }
+                    }
+                }
+
                 int cr = (int)((m.y - eoy) / ecs);
                 int cc = (int)((m.x - eox) / ecs);
                 if (m.y >= eoy && m.x >= eox && cr >= 0 && cr < editorRows_ && cc >= 0 && cc < editorCols_) {
@@ -462,10 +526,10 @@ namespace ark {
                     else editorBoard_.setFixedCell(cr, cc, editorTool_ - 2);
                 }
 
-                float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
-                if (pcx < 650.f) pcx = 650.f;
+                float pcx = eox + std::max(editorCols_, 5) * ecs + 120.f;
+                if (pcx < 700.f) pcx = 700.f;
 
-                float psx = pcx, psgy = 300.f;
+                float psx = pcx, psgy = 430.f;
                 int pr = (int)((m.y - psgy) / 40.f);
                 int pc = (int)((m.x - psx) / 40.f);
                 if (m.y >= psgy && m.x >= psx && pr >= 0 && pr < editorPartH_ && pc >= 0 && pc < editorPartW_) {
@@ -485,7 +549,31 @@ namespace ark {
                     }
                 }
 
-                float psy = 240.f;
+                // Check for part deletion in parts view
+                float partsStartY = 430.f + editorPartH_ * 40.f + 80.f;
+                if (m.x >= pcx && m.x < 1280.f && m.y >= partsStartY && m.y < 800.f) {
+                    float lpx = pcx;
+                    float lpy = partsStartY + editorScrollY_;
+                    for (size_t i = 0; i < editorParts_.size(); ) {
+                        if (lpx + 60 > 1200) { lpx = pcx; lpy += 60; }
+
+                        // Delete Button bounds matching GameRender
+                        if (m.x >= lpx + 35 && m.x <= lpx + 47 && m.y >= lpy + 3 && m.y <= lpy + 15) {
+                            editorParts_.erase(editorParts_.begin() + i);
+                            if (sndClick_) sndClick_->play();
+                            // Update IDs
+                            for (size_t j = i; j < editorParts_.size(); ++j) {
+                                editorParts_[j] = Part(j, editorParts_[j].colorIndex(), editorParts_[j].shape());
+                            }
+                            break; // Stop evaluating to prevent deleting multiple parts in one click
+                        }
+
+                        lpx += 60;
+                        i++;
+                    }
+                }
+
+                float psy = 370.f;
                 if (isMouseOver(pcx + 50, psy, 35, 35)) editorPartW_ = std::max(1, editorPartW_ - 1);
                 if (isMouseOver(pcx + 90, psy, 35, 35)) editorPartW_ = std::min(6, editorPartW_ + 1);
                 if (isMouseOver(pcx + 190, psy, 35, 35)) editorPartH_ = std::max(1, editorPartH_ - 1);
@@ -517,6 +605,7 @@ namespace ark {
                         exportLevel("Levels/custom.txt", editorBoard_, editorParts_);
                         scanLevels();
                         loadLevel("Levels/custom.txt");
+                        testingCustomLevel_ = true;
                     }
                     catch (std::exception& e) {
                         statusMsg_ = e.what(); statusTimer_ = 3.f;
@@ -535,7 +624,12 @@ namespace ark {
             if (mp->button == sf::Mouse::Button::Left) {
                 if (isMouseOver(540, 450, 200, 50)) {
                     if (sndClick_) sndClick_->play();
-                    scene_ = Scene::LevelSelect;
+                    if (testingCustomLevel_) {
+                        scene_ = Scene::Editor;
+                        testingCustomLevel_ = false;
+                    } else {
+                        scene_ = Scene::LevelSelect;
+                    }
                 }
                 if (isMouseOver(540, 520, 200, 50)) {
                     if (sndClick_) sndClick_->play();

@@ -102,7 +102,9 @@ private:
     float idleTimer_ = 0.f;
     bool hintAvailable_ = false;
     bool showingHint_ = false;
+    bool showingNoSolution_ = false;
     int hintPartIdx_ = -1;
+    bool testingCustomLevel_ = false;
 
     // ---- °Êµe ----
     float rotAnimAngle_ = 0.f;
@@ -119,6 +121,7 @@ private:
     std::vector<Part> editorParts_;
     int editorTool_ = 0; // 0=empty,1=blocked,2+=fixed color
     int editorPartColor_ = 0;
+    int editorTargetColor_ = 0;
     int editorPartW_ = 2, editorPartH_ = 2;
     Shape editorPartShape_;
     bool editorDrawingPart_ = false;
@@ -172,6 +175,8 @@ private:
     void renderPartPalette();
     void renderButton(float x, float y, float w, float h,
                       const std::string& label, bool hover);
+    void renderColorButton(float x, float y, float w, float h,
+                           const std::string& label, bool hover, sf::Color bgColor);
     bool isMouseOver(float x, float y, float w, float h) const;
 
     sf::Vector2f mousePos() const;

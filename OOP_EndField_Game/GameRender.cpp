@@ -5,9 +5,20 @@
 namespace ark {
 
 	void Game::renderButton(float x, float y, float w, float h, const std::string& label, bool hover) {
+		renderColorButton(x, y, w, h, label, hover, Colors::accent());
+	}
+
+	void Game::renderColorButton(float x, float y, float w, float h, const std::string& label, bool hover, sf::Color bgColor) {
 		sf::RectangleShape bg(sf::Vector2f(w, h));
 		bg.setPosition(sf::Vector2f(x, y));
-		bg.setFillColor(hover ? Colors::accentHover() : Colors::accent());
+
+		if (hover) {
+			bgColor.r = (uint8_t)std::min<int>(255, bgColor.r + 20);
+			bgColor.g = (uint8_t)std::min<int>(255, bgColor.g + 20);
+			bgColor.b = (uint8_t)std::min<int>(255, bgColor.b + 20);
+		}
+
+		bg.setFillColor(bgColor);
 		bg.setOutlineColor(sf::Color(255, 255, 255, 40));
 		bg.setOutlineThickness(1.f);
 		window_.draw(bg);
@@ -184,25 +195,27 @@ namespace ark {
 	}
 
 	void Game::renderHints(float ox, float oy, float cs) {
-		if (!showingHint_ || !solutionFound_ || hintPartIdx_ < 0) return;
-		// Find solution placement for hint part
+		if (!showingHint_ || !solutionFound_ || solution_.empty()) return;
+
 		for (auto& sp : solution_) {
-			if (sp.partId == hintPartIdx_) {
-				Part p = initialParts_[sp.partId].rotated(sp.rotation);
-				for (int r = 0; r < p.height(); ++r) {
-					for (int c = 0; c < p.width(); ++c) {
-						if (!p.shape()[r][c]) continue;
-						float px = ox + (sp.anchorCol + c) * cs + 1;
-						float py = oy + (sp.anchorRow + r) * cs + 1;
-						sf::RectangleShape cell(sf::Vector2f(cs - 2, cs - 2));
-						cell.setPosition(sf::Vector2f(px, py));
-						cell.setFillColor(Colors::hintColor());
-						cell.setOutlineColor(sf::Color(80, 200, 120, 180));
-						cell.setOutlineThickness(2.f);
-						window_.draw(cell);
-					}
+			Part p = initialParts_[sp.partId].rotated(sp.rotation);
+			for (int r = 0; r < p.height(); ++r) {
+				for (int c = 0; c < p.width(); ++c) {
+					if (!p.shape()[r][c]) continue;
+					float px = ox + (sp.anchorCol + c) * cs + 1;
+					float py = oy + (sp.anchorRow + r) * cs + 1;
+					sf::RectangleShape cell(sf::Vector2f(cs - 2, cs - 2));
+					cell.setPosition(sf::Vector2f(px, py));
+
+					sf::Color baseCol = Colors::partColor(p.colorIndex());
+					baseCol.a = 150; // Semi-transparent
+					cell.setFillColor(baseCol);
+
+					baseCol.a = 200;
+					cell.setOutlineColor(baseCol);
+					cell.setOutlineThickness(2.f);
+					window_.draw(cell);
 				}
-				break;
 			}
 		}
 	}
@@ -365,9 +378,13 @@ namespace ark {
 			disBtn.setPosition(sf::Vector2f(boardOffX_ + 320, btnY));
 			disBtn.setFillColor(sf::Color(50, 55, 65));
 			window_.draw(disBtn);
-			sf::Text ht(font_, "Hint (wait)", 18);
+
+			int rem = std::max(0, (int)std::ceil(30.f - idleTimer_));
+			std::string hintStr = "Hint (" + std::to_string(rem) + "s)";
+			sf::Text ht(font_, hintStr, 18);
 			ht.setFillColor(sf::Color(80, 85, 95));
-			ht.setPosition(sf::Vector2f(boardOffX_ + 340, btnY + 12));
+			auto b = ht.getLocalBounds();
+			ht.setPosition(sf::Vector2f(boardOffX_ + 320 + (140 - b.size.x) / 2.f, btnY + 12));
 			window_.draw(ht);
 		}
 
@@ -383,10 +400,24 @@ namespace ark {
 		}
 
 		// Controls help
-		sf::Text help(font_, "WASD:Move  R:Rotate  Enter/Click:Place  Esc:Deselect  F5:Reset  F1:Hint", 16);
+		sf::Text help(font_, "R:Rotate  Enter/Left Click:Place  Esc/Right Click:Deselect  F5:Reset  F1:Hint", 16);
 		help.setFillColor(sf::Color(80, 85, 100));
 		help.setPosition(sf::Vector2f(20, 760));
 		window_.draw(help);
+
+		if (showingNoSolution_) {
+			sf::RectangleShape overlay(sf::Vector2f(1280, 800));
+			overlay.setFillColor(sf::Color(0, 0, 0, 150));
+			window_.draw(overlay);
+
+			sf::Text msg(font_, "NO SOLUTION", 48);
+			msg.setFillColor(Colors::error());
+			auto cb = msg.getLocalBounds();
+			msg.setPosition(sf::Vector2f(640 - cb.size.x / 2.f, 300.f));
+			window_.draw(msg);
+
+			renderButton(540, 450, 200, 50, "Back", isMouseOver(540, 450, 200, 50));
+		}
 	}
 
 	void Game::renderEditor() {
@@ -401,7 +432,7 @@ namespace ark {
 		renderButton(tx, 60, 110, 40, "Block(X)", editorTool_ == 1); tx += 120;
 		for (int c = 0; c < editorColors_; c++) {
 			std::string l = "Fixed C" + std::to_string(c);
-			renderButton(tx, 60, 110, 40, l, editorTool_ == 2 + c);
+			renderColorButton(tx, 60, 110, 40, l, editorTool_ == 2 + c, Colors::partColor(c));
 			tx += 120;
 		}
 
@@ -419,10 +450,53 @@ namespace ark {
 		ccl.setFillColor(Colors::text()); ccl.setPosition(sf::Vector2f(480, cy + 8)); window_.draw(ccl);
 		renderButton(580, cy, 40, 40, "-", false); renderButton(630, cy, 40, 40, "+", false);
 
-		// Editor board (Y = 190)
-		float eox = 60.f, eoy = 190.f, ecs = 50.f;
-		if (editorBoard_.rows() > 0)
+		// Target Color panel (Y = 170)
+		float tcy = 170.f;
+		sf::Text tcl(font_, "Target Color:", 20);
+		tcl.setFillColor(Colors::text());
+		tcl.setPosition(sf::Vector2f(20, tcy + 8));
+		window_.draw(tcl);
+
+		float tcx = 160.f;
+		for (int c = 0; c < editorColors_; c++) {
+			std::string l = "C" + std::to_string(c);
+			renderColorButton(tcx, tcy, 60, 40, l, editorTargetColor_ == c, Colors::partColor(c));
+			tcx += 70.f;
+		}
+
+		// Editor board (Y = 320)
+		float eox = 140.f, eoy = 320.f, ecs = 50.f;
+		if (editorBoard_.rows() > 0) {
 			renderBoard(editorBoard_, eox, eoy, ecs);
+
+			int tc = editorTargetColor_;
+			if (tc < editorBoard_.colorCount()) {
+				// Row Target adjustments (left side)
+				for (int r = 0; r < editorBoard_.rows(); ++r) {
+					float yy = eoy + r * ecs;
+					int tg = editorBoard_.targetRow(tc, r);
+					renderButton(eox - 95, yy + 10, 25, 30, "-", false);
+					sf::Text tt(font_, std::to_string(tg), 18);
+					tt.setFillColor(Colors::partColor(tc));
+					auto b = tt.getLocalBounds();
+					tt.setPosition(sf::Vector2f(eox - 65 + (25 - b.size.x) / 2.f, yy + 15));
+					window_.draw(tt);
+					renderButton(eox - 35, yy + 10, 25, 30, "+", false);
+				}
+				// Col Target adjustments (top side)
+				for (int c = 0; c < editorBoard_.cols(); ++c) {
+					float xx = eox + c * ecs;
+					int tg = editorBoard_.targetCol(tc, c);
+					renderButton(xx + 10, eoy - 95, 30, 25, "+", false);
+					sf::Text tt(font_, std::to_string(tg), 18);
+					tt.setFillColor(Colors::partColor(tc));
+					auto b = tt.getLocalBounds();
+					tt.setPosition(sf::Vector2f(xx + 15 + (20 - b.size.x) / 2.f, eoy - 65));
+					window_.draw(tt);
+					renderButton(xx + 10, eoy - 35, 30, 25, "-", false);
+				}
+			}
+		}
 		else {
 			sf::Text hint(font_, "Click 'Apply Size' to create board", 20);
 			hint.setFillColor(sf::Color(150, 155, 170));
@@ -431,16 +505,16 @@ namespace ark {
 		}
 
 		// Part creation panel
-		float pcx = eox + std::max(editorCols_, 5) * ecs + 100.f;
-		if (pcx < 650.f) pcx = 650.f;
+		float pcx = eox + std::max(editorCols_, 5) * ecs + 120.f;
+		if (pcx < 700.f) pcx = 700.f;
 
 		sf::Text pt(font_, "Create Part", 24);
 		pt.setFillColor(Colors::accent());
-		pt.setPosition(sf::Vector2f(pcx, 190));
+		pt.setPosition(sf::Vector2f(pcx, 320));
 		window_.draw(pt);
 
-		// W, H, Color (Y = 240)
-		float psy = 240.f;
+		// W, H, Color (Y = 370)
+		float psy = 370.f;
 		sf::Text pw(font_, "W: " + std::to_string(editorPartW_), 18);
 		pw.setFillColor(Colors::text()); pw.setPosition(sf::Vector2f(pcx, psy + 10)); window_.draw(pw);
 		renderButton(pcx + 50, psy, 35, 35, "-", false); renderButton(pcx + 90, psy, 35, 35, "+", false);
@@ -454,8 +528,8 @@ namespace ark {
 		pcol.setPosition(sf::Vector2f(pcx + 280, psy + 10)); window_.draw(pcol);
 		renderButton(pcx + 380, psy, 110, 35, "Next Color", false);
 
-		// Part shape grid (Y = 300)
-		float psgy = 300.f;
+		// Part shape grid (Y = 430)
+		float psgy = 430.f;
 		for (int r = 0; r < editorPartH_; r++) {
 			for (int c = 0; c < editorPartW_; c++) {
 				sf::RectangleShape cell(sf::Vector2f(38, 38));
@@ -508,6 +582,17 @@ namespace ark {
 					window_.draw(mc);
 				}
 			}
+
+			// Delete Button
+			sf::RectangleShape delBtn(sf::Vector2f(12, 12));
+			delBtn.setPosition(sf::Vector2f(lpx + 35, lpy + 3));
+			delBtn.setFillColor(Colors::error());
+			window_.draw(delBtn);
+			sf::Text dx(font_, "X", 10);
+			dx.setFillColor(sf::Color::White);
+			dx.setPosition(sf::Vector2f(lpx + 37, lpy + 1));
+			window_.draw(dx);
+
 			lpx += 60;
 		}
 

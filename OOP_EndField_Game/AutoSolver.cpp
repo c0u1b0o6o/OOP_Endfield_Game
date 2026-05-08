@@ -1,6 +1,8 @@
 #include "AutoSolver.h"
 #include <algorithm>
 #include <iostream>
+#include <set>
+#include <utility>
 
 namespace ark {
 
@@ -66,11 +68,88 @@ namespace ark {
         return false;
     }
 
+    void AutoSolver::dfsAll(Board& board, std::vector<Part>& parts,
+                         std::vector<bool>& used, int placedCount,
+                         std::vector<SolverPlacement>& currentSolution,
+                         std::vector<std::vector<SolverPlacement>>& allSolutions) {
+        if (placedCount == (int)parts.size()) {
+            if (board.checkWinCondition((int)parts.size(), placedCount)) {
+                allSolutions.push_back(currentSolution);
+            }
+            return;
+        }
+
+        int idx = -1;
+        for (int i = 0; i < (int)parts.size(); ++i)
+            if (!used[i]) { idx = i; break; }
+        if (idx < 0) return;
+
+        used[idx] = true;
+        Part original = parts[idx];
+
+        for (int rot = 0; rot < 4; ++rot) {
+            if (rot > 0) parts[idx].rotateRight();
+
+            const Part& p = parts[idx];
+            for (int r = -p.pivotRow(); r <= board.rows() - 1; ++r) {
+                for (int c = -p.pivotCol(); c <= board.cols() - 1; ++c) {
+                    if (board.canPlace(p, r, c)) {
+                        board.placePart(p, r, c);
+
+                        if (pruneCheck(board)) {
+                            currentSolution.push_back({p.id(), r, c, rot});
+                            dfsAll(board, parts, used, placedCount + 1, currentSolution, allSolutions);
+                            currentSolution.pop_back();
+                        }
+
+                        board.removePart(p);
+                    }
+                }
+            }
+        }
+
+        parts[idx] = original;
+        used[idx] = false;
+    }
+
     bool AutoSolver::solve(Board board, std::vector<Part> parts,
                            std::vector<SolverPlacement>& solution) {
         solution.clear();
         std::vector<bool> used(parts.size(), false);
         return dfs(board, parts, used, 0, solution);
+    }
+
+    std::vector<std::vector<SolverPlacement>> AutoSolver::solveAll(Board board, std::vector<Part> parts) {
+        std::vector<std::vector<SolverPlacement>> rawSolutions;
+        std::vector<SolverPlacement> currentSolution;
+        std::vector<bool> used(parts.size(), false);
+        dfsAll(board, parts, used, 0, currentSolution, rawSolutions);
+
+        std::vector<std::vector<SolverPlacement>> allSolutions;
+        std::set<std::set<std::pair<int, std::vector<std::pair<int, int>>>>> seenSignatures;
+
+        for (auto& sol : rawSolutions) {
+            std::set<std::pair<int, std::vector<std::pair<int, int>>>> solSignature;
+            for (auto& sp : sol) {
+                Part p = parts[sp.partId].rotated(sp.rotation);
+                std::vector<std::pair<int, int>> cells;
+                for (int pr = 0; pr < p.height(); ++pr) {
+                    for (int pc = 0; pc < p.width(); ++pc) {
+                        if (p.shape()[pr][pc]) {
+                            cells.push_back({sp.anchorRow + pr, sp.anchorCol + pc});
+                        }
+                    }
+                }
+                std::sort(cells.begin(), cells.end());
+                solSignature.insert({p.colorIndex(), cells});
+            }
+
+            if (seenSignatures.find(solSignature) == seenSignatures.end()) {
+                seenSignatures.insert(solSignature);
+                allSolutions.push_back(sol);
+            }
+        }
+        return allSolutions;
     }
 
 } // namespace ark
