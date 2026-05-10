@@ -198,7 +198,6 @@ namespace ark {
         }
         else {
             solutionFound_ = false;
-            showingNoSolution_ = true;
             std::cout << "No solution found." << std::endl;
         }
     }
@@ -356,7 +355,11 @@ namespace ark {
             if (kp->code == sf::Keyboard::Key::F5) resetLevel();
             if (kp->code == sf::Keyboard::Key::F1) {
                 if (!solutionSearched_) solveInBackground();
-                if (solutionFound_) showHint();
+                if (solutionFound_) {
+                    showHint();
+                } else {
+                    showingNoSolution_ = true;
+                }
             }
         }
         if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
@@ -405,12 +408,18 @@ namespace ark {
                         }
                         if (board_.checkWinCondition((int)parts_.size(), placedCount_))
                             scene_ = Scene::Victory;
+                    } else {
+                        showingNoSolution_ = true;
                     }
                 }
                 if (hintAvailable_ && isMouseOver(boardOffX_ + 320, btnY, 140, 50)) {
                     if (sndClick_) sndClick_->play();
                     if (!solutionSearched_) solveInBackground();
-                    showHint();
+                    if (solutionFound_) {
+                        showHint();
+                    } else {
+                        showingNoSolution_ = true;
+                    }
                 }
                 if (isMouseOver(boardOffX_ + 480, btnY, 140, 50)) {
                     if (sndClick_) sndClick_->play();
