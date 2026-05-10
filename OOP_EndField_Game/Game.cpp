@@ -2,6 +2,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <commdlg.h>
+#pragma comment(lib, "Comdlg32.lib")
 #include <iostream>
 #include <algorithm>
 #include <cmath>
