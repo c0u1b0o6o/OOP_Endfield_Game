@@ -310,6 +310,7 @@ namespace ark {
 		window_.draw(title);
 
 		renderButton(40, 380, 100, 40, "Back", isMouseOver(40, 380, 100, 40));
+		renderButton(40, 430, 100, 40, "Load File", isMouseOver(40, 430, 100, 40));
 
 		if (levelFiles_.empty()) {
 			sf::Text none(font_, "No .txt files found in Levels/ folder", 18);

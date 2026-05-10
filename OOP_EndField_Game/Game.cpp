@@ -1,4 +1,7 @@
 #include "Game.h"
+#define NOMINMAX
+#include <windows.h>
+#include <commdlg.h>
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -292,6 +295,25 @@ namespace ark {
                 if (isMouseOver(40, 380, 100, 40)) {
                     if (sndClick_) sndClick_->play();
                     scene_ = Scene::MainMenu;
+                    return;
+                }
+                // 開啟檔案按鈕
+                if (isMouseOver(40, 430, 100, 40)) {
+                    if (sndClick_) sndClick_->play();
+
+                    OPENFILENAMEA ofn;
+                    CHAR szFile[260] = {0};
+                    ZeroMemory(&ofn, sizeof(OPENFILENAME));
+                    ofn.lStructSize = sizeof(OPENFILENAME);
+                    ofn.hwndOwner = NULL;
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.lpstrFilter = "Text Files\0*.txt\0All Files\0*.*\0";
+                    ofn.nFilterIndex = 1;
+                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+                    if (GetOpenFileNameA(&ofn) == TRUE) {
+                        loadLevel(ofn.lpstrFile);
+                    }
                     return;
                 }
                 // 關卡清單按鈕
