@@ -131,7 +131,6 @@ namespace ark {
         if (sndPick_) sndPick_->play();
         selectedPart_ = idx;
         dragging_ = true;
-        idleTimer_ = 0.f;
     }
 
     void Game::deselectPart() {
@@ -157,7 +156,6 @@ namespace ark {
                 board_.printSolution();
             }
             deselectPart();
-            idleTimer_ = 0.f;
         }
         else {
             if (sndError_) sndError_->play();
@@ -172,7 +170,6 @@ namespace ark {
         parts_[selectedPart_].rotateRight();
         rotating_ = true;
         rotAnimAngle_ = 90.f;
-        idleTimer_ = 0.f;
     }
 
     void Game::solveInBackground() {
@@ -332,7 +329,6 @@ namespace ark {
                 if (kp->code == sf::Keyboard::Key::R) rotateCurrent();
                 if (kp->code == sf::Keyboard::Key::Enter) tryPlace();
                 if (kp->code == sf::Keyboard::Key::Escape) deselectPart();
-                idleTimer_ = 0.f;
             }
             if (kp->code == sf::Keyboard::Key::F5) resetLevel();
             if (kp->code == sf::Keyboard::Key::F1) {
