@@ -89,6 +89,15 @@ namespace ark {
 					cell.setFillColor(Colors::partColor(clr));
 					cell.setOutlineColor(sf::Color(255, 255, 255, 30));
 					cell.setOutlineThickness(1.f);
+					window_.draw(cell);
+
+					sf::Text numTxt(font_, std::to_string(t), (unsigned int)(cs * 0.4f));
+					numTxt.setFillColor(sf::Color(255, 255, 255, 180));
+					auto nb = numTxt.getLocalBounds();
+					numTxt.setPosition(sf::Vector2f(ox + c * cs + (cs - nb.size.x) / 2 - nb.position.x,
+						oy + r * cs + (cs - nb.size.y) / 2 - nb.position.y));
+					window_.draw(numTxt);
+					continue;
 				}
 				window_.draw(cell);
 			}
