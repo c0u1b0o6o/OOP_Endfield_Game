@@ -126,10 +126,10 @@ namespace ark {
         dfsAll(board, parts, used, 0, currentSolution, rawSolutions);
 
         std::vector<std::vector<SolverPlacement>> allSolutions;
-        std::set<std::set<std::pair<int, std::vector<std::pair<int, int>>>>> seenSignatures;
+        std::set<std::set<std::pair<int, std::pair<int, std::vector<std::pair<int, int>>>>>> seenSignatures;
 
         for (auto& sol : rawSolutions) {
-            std::set<std::pair<int, std::vector<std::pair<int, int>>>> solSignature;
+            std::set<std::pair<int, std::pair<int, std::vector<std::pair<int, int>>>>> solSignature;
             for (auto& sp : sol) {
                 Part p = parts[sp.partId].rotated(sp.rotation);
                 std::vector<std::pair<int, int>> cells;
@@ -141,7 +141,7 @@ namespace ark {
                     }
                 }
                 std::sort(cells.begin(), cells.end());
-                solSignature.insert({p.colorIndex(), cells});
+                solSignature.insert({sp.partId, {p.colorIndex(), cells}});
             }
 
             if (seenSignatures.find(solSignature) == seenSignatures.end()) {
