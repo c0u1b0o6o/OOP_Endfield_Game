@@ -1,4 +1,8 @@
 #include "Game.h"
+#define NOMINMAX
+#include <windows.h>
+#include <commdlg.h>
+#pragma comment(lib, "Comdlg32.lib")
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -194,7 +198,6 @@ namespace ark {
         }
         else {
             solutionFound_ = false;
-            showingNoSolution_ = true;
             std::cout << "No solution found." << std::endl;
         }
     }
@@ -294,6 +297,25 @@ namespace ark {
                     scene_ = Scene::MainMenu;
                     return;
                 }
+                // 開啟檔案按鈕
+                if (isMouseOver(40, 430, 100, 40)) {
+                    if (sndClick_) sndClick_->play();
+
+                    OPENFILENAMEA ofn;
+                    CHAR szFile[260] = {0};
+                    ZeroMemory(&ofn, sizeof(OPENFILENAME));
+                    ofn.lStructSize = sizeof(OPENFILENAME);
+                    ofn.hwndOwner = NULL;
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.lpstrFilter = "Text Files\0*.txt\0All Files\0*.*\0";
+                    ofn.nFilterIndex = 1;
+                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+                    if (GetOpenFileNameA(&ofn) == TRUE) {
+                        loadLevel(ofn.lpstrFile);
+                    }
+                    return;
+                }
                 // 關卡清單按鈕
                 for (int i = 0; i < (int)levelFiles_.size(); ++i) {
                     float y = 100.f + i * 60.f + levelScrollY_;
@@ -333,7 +355,11 @@ namespace ark {
             if (kp->code == sf::Keyboard::Key::F5) resetLevel();
             if (kp->code == sf::Keyboard::Key::F1) {
                 if (!solutionSearched_) solveInBackground();
-                if (solutionFound_) showHint();
+                if (solutionFound_) {
+                    showHint();
+                } else {
+                    showingNoSolution_ = true;
+                }
             }
         }
         if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
@@ -382,12 +408,18 @@ namespace ark {
                         }
                         if (board_.checkWinCondition((int)parts_.size(), placedCount_))
                             scene_ = Scene::Victory;
+                    } else {
+                        showingNoSolution_ = true;
                     }
                 }
                 if (hintAvailable_ && isMouseOver(boardOffX_ + 320, btnY, 140, 50)) {
                     if (sndClick_) sndClick_->play();
                     if (!solutionSearched_) solveInBackground();
-                    showHint();
+                    if (solutionFound_) {
+                        showHint();
+                    } else {
+                        showingNoSolution_ = true;
+                    }
                 }
                 if (isMouseOver(boardOffX_ + 480, btnY, 140, 50)) {
                     if (sndClick_) sndClick_->play();
