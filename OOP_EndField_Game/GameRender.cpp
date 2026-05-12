@@ -48,26 +48,26 @@ namespace ark {
 				int t = board.cellType(r, c);
 
 				if (t == cell::EMPTY) {
-					// 1. 未下方塊的底: Transparent low opacity black with faint X dark texture
+					// 1. 未下方塊的底: Brighter background so it is visible, and more visible X
 					sf::RectangleShape cell(sf::Vector2f(cs, cs));
 					cell.setPosition(pos);
-					cell.setFillColor(sf::Color(15, 15, 15, 180));
+					cell.setFillColor(sf::Color(25, 25, 30, 200));
 					window_.draw(cell);
 
-					sf::RectangleShape line1(sf::Vector2f(cs * 0.5f, 1.f));
-					line1.setOrigin(sf::Vector2f(cs * 0.25f, 0.5f));
+					sf::RectangleShape line1(sf::Vector2f(cs * 0.6f, 2.f));
+					line1.setOrigin(sf::Vector2f(cs * 0.3f, 1.f));
 					line1.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2));
 					line1.setRotation(sf::degrees(45.f));
-					line1.setFillColor(sf::Color(40, 40, 45, 150));
+					line1.setFillColor(sf::Color(60, 60, 70, 200));
 					window_.draw(line1);
 					line1.setRotation(sf::degrees(-45.f));
 					window_.draw(line1);
 				}
 				else if (t == cell::BLOCK) {
 					// 3. 不可用的底: Gray square with diagonal lines (hatching) and forbidden symbol
-					sf::RectangleShape cell(sf::Vector2f(cs - 2, cs - 2));
-					cell.setPosition(sf::Vector2f(pos.x + 1, pos.y + 1));
-					cell.setFillColor(sf::Color(50, 50, 55));
+					sf::RectangleShape cell(sf::Vector2f(cs, cs));
+					cell.setPosition(pos);
+					cell.setFillColor(sf::Color(45, 45, 50));
 					window_.draw(cell);
 
 					// A few diagonal lines to fake hatching
@@ -76,7 +76,7 @@ namespace ark {
 						hl.setOrigin(sf::Vector2f(cs * 0.75f, 0.5f));
 						hl.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2 + i * cs * 0.3f));
 						hl.setRotation(sf::degrees(45.f));
-						hl.setFillColor(sf::Color(40, 40, 45));
+						hl.setFillColor(sf::Color(35, 35, 40));
 						window_.draw(hl);
 					}
 
@@ -96,7 +96,7 @@ namespace ark {
 					forbidLine.setFillColor(sf::Color(100, 100, 110));
 					window_.draw(forbidLine);
 				}
-				else if (t == cell::FIXED || t > 0) {
+				else if (t == cell::FIXED || t >= 0) {
 					// 2 & 4. 實體方塊 & X色的固定方塊
 					bool isLocked = (t == cell::FIXED);
 					sf::Color mainColor = Colors::partColor(board.cellColor(r, c));
@@ -316,10 +316,27 @@ namespace ark {
 			for (int r = 0; r < p.height(); ++r) {
 				for (int c = 0; c < p.width(); ++c) {
 					if (!p.shape()[r][c]) continue;
-					sf::RectangleShape mc(sf::Vector2f(miniCs - 1, miniCs - 1));
-					mc.setPosition(sf::Vector2f(palX + 8 + c * miniCs, py + 4 + r * miniCs));
-					mc.setFillColor(isPlaced ? sf::Color(60, 65, 75) : Colors::partColor(p.colorIndex()));
+					float mcX = palX + 8 + c * miniCs;
+					float mcY = py + 4 + r * miniCs;
+					sf::RectangleShape mc(sf::Vector2f(miniCs - 2, miniCs - 2));
+					mc.setPosition(sf::Vector2f(mcX + 1, mcY + 1));
+
+					sf::Color mainColor = isPlaced ? sf::Color(100, 105, 115) : Colors::partColor(p.colorIndex());
+					sf::Color darkColor = mainColor;
+					darkColor.r /= 3; darkColor.g /= 3; darkColor.b /= 3;
+					if (isPlaced) { darkColor.r /= 2; darkColor.g /= 2; darkColor.b /= 2; }
+
+					mc.setFillColor(darkColor);
+					mc.setOutlineColor(mainColor);
+					mc.setOutlineThickness(-1.f);
 					window_.draw(mc);
+
+					sf::RectangleShape mcInner(sf::Vector2f(miniCs - 6, miniCs - 6));
+					mcInner.setPosition(sf::Vector2f(mcX + 3, mcY + 3));
+					mcInner.setFillColor(sf::Color::Transparent);
+					mcInner.setOutlineColor(mainColor);
+					mcInner.setOutlineThickness(-1.f);
+					window_.draw(mcInner);
 				}
 			}
 
