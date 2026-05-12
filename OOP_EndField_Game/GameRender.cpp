@@ -44,62 +44,112 @@ namespace ark {
 		// Cells
 		for (int r = 0; r < R; ++r) {
 			for (int c = 0; c < C; ++c) {
-				sf::RectangleShape cell(sf::Vector2f(cs - 2, cs - 2));
-				cell.setPosition(sf::Vector2f(ox + c * cs + 1, oy + r * cs + 1));
+				sf::Vector2f pos(ox + c * cs, oy + r * cs);
 				int t = board.cellType(r, c);
-				if (t == cell::BLOCK) {
-					cell.setFillColor(Colors::blocked());
-					// Draw X pattern
+
+				if (t == cell::EMPTY) {
+					// 1. 未下方塊的底: Transparent low opacity black with faint X dark texture
+					sf::RectangleShape cell(sf::Vector2f(cs, cs));
+					cell.setPosition(pos);
+					cell.setFillColor(sf::Color(15, 15, 15, 180));
 					window_.draw(cell);
-					sf::RectangleShape line1(sf::Vector2f(cs * 0.7f, 2.f));
-					line1.setOrigin(sf::Vector2f(cs * 0.35f, 1.f));
-					line1.setPosition(sf::Vector2f(ox + c * cs + cs / 2, oy + r * cs + cs / 2));
+
+					sf::RectangleShape line1(sf::Vector2f(cs * 0.5f, 1.f));
+					line1.setOrigin(sf::Vector2f(cs * 0.25f, 0.5f));
+					line1.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2));
 					line1.setRotation(sf::degrees(45.f));
-					line1.setFillColor(sf::Color(100, 100, 110));
+					line1.setFillColor(sf::Color(40, 40, 45, 150));
 					window_.draw(line1);
 					line1.setRotation(sf::degrees(-45.f));
 					window_.draw(line1);
-					continue;
 				}
-				else if (t == cell::FIXED) {
-					int clr = board.cellColor(r, c);
-					auto fc = Colors::partColor(clr);
-					fc.r = (uint8_t)std::min(255, fc.r + 40);
-					fc.g = (uint8_t)std::min(255, fc.g + 40);
-					fc.b = (uint8_t)std::min(255, fc.b + 40);
-					cell.setFillColor(fc);
-					cell.setOutlineColor(sf::Color(255, 255, 255, 80));
-					cell.setOutlineThickness(1.f);
-					window_.draw(cell);
-					// Lock icon (= symbol)
-					sf::Text eq(font_, "=", (unsigned int)(cs * 0.5f));
-					eq.setFillColor(sf::Color(255, 255, 255, 200));
-					auto eb = eq.getLocalBounds();
-					eq.setPosition(sf::Vector2f(ox + c * cs + (cs - eb.size.x) / 2 - eb.position.x,
-						oy + r * cs + (cs - eb.size.y) / 2 - eb.position.y));
-					window_.draw(eq);
-					continue;
-				}
-				else if (t == cell::EMPTY) {
-					cell.setFillColor(sf::Color(30, 33, 45));
-				}
-				else {
-					// Player part
-					int clr = board.cellColor(r, c);
-					cell.setFillColor(Colors::partColor(clr));
-					cell.setOutlineColor(sf::Color(255, 255, 255, 30));
-					cell.setOutlineThickness(1.f);
+				else if (t == cell::BLOCK) {
+					// 3. 不可用的底: Gray square with diagonal lines (hatching) and forbidden symbol
+					sf::RectangleShape cell(sf::Vector2f(cs - 2, cs - 2));
+					cell.setPosition(sf::Vector2f(pos.x + 1, pos.y + 1));
+					cell.setFillColor(sf::Color(50, 50, 55));
 					window_.draw(cell);
 
-					sf::Text numTxt(font_, std::to_string(t), (unsigned int)(cs * 0.4f));
-					numTxt.setFillColor(sf::Color(255, 255, 255, 180));
-					auto nb = numTxt.getLocalBounds();
-					numTxt.setPosition(sf::Vector2f(ox + c * cs + (cs - nb.size.x) / 2 - nb.position.x,
-						oy + r * cs + (cs - nb.size.y) / 2 - nb.position.y));
-					window_.draw(numTxt);
-					continue;
+					// A few diagonal lines to fake hatching
+					for (int i = -1; i <= 1; ++i) {
+						sf::RectangleShape hl(sf::Vector2f(cs * 1.5f, 1.f));
+						hl.setOrigin(sf::Vector2f(cs * 0.75f, 0.5f));
+						hl.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2 + i * cs * 0.3f));
+						hl.setRotation(sf::degrees(45.f));
+						hl.setFillColor(sf::Color(40, 40, 45));
+						window_.draw(hl);
+					}
+
+					// Forbidden Symbol
+					sf::CircleShape forbid(cs * 0.2f);
+					forbid.setOrigin(sf::Vector2f(cs * 0.2f, cs * 0.2f));
+					forbid.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2));
+					forbid.setFillColor(sf::Color::Transparent);
+					forbid.setOutlineColor(sf::Color(100, 100, 110));
+					forbid.setOutlineThickness(2.f);
+					window_.draw(forbid);
+
+					sf::RectangleShape forbidLine(sf::Vector2f(cs * 0.4f, 2.f));
+					forbidLine.setOrigin(sf::Vector2f(cs * 0.2f, 1.f));
+					forbidLine.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2));
+					forbidLine.setRotation(sf::degrees(45.f));
+					forbidLine.setFillColor(sf::Color(100, 100, 110));
+					window_.draw(forbidLine);
 				}
-				window_.draw(cell);
+				else if (t == cell::FIXED || t > 0) {
+					// 2 & 4. 實體方塊 & X色的固定方塊
+					bool isLocked = (t == cell::FIXED);
+					sf::Color mainColor = Colors::partColor(board.cellColor(r, c));
+
+					// Base block
+					sf::RectangleShape baseBlock(sf::Vector2f(cs - 2, cs - 2));
+					baseBlock.setPosition(sf::Vector2f(pos.x + 1, pos.y + 1));
+					sf::Color darkColor = mainColor;
+					darkColor.r /= 3; darkColor.g /= 3; darkColor.b /= 3;
+					baseBlock.setFillColor(darkColor);
+					baseBlock.setOutlineColor(mainColor);
+					baseBlock.setOutlineThickness(-2.f);
+
+					// Inner decor
+					sf::RectangleShape innerDecor(sf::Vector2f(cs - 14, cs - 14));
+					innerDecor.setPosition(sf::Vector2f(pos.x + 7, pos.y + 7));
+					innerDecor.setFillColor(sf::Color::Transparent);
+					innerDecor.setOutlineColor(mainColor);
+					innerDecor.setOutlineThickness(-1.f);
+
+					window_.draw(baseBlock);
+					window_.draw(innerDecor);
+
+					// Corner crosses
+					auto drawCorner = [&](float cx, float cy, float angle) {
+						sf::RectangleShape line(sf::Vector2f(4.f, 1.f));
+						line.setOrigin(sf::Vector2f(2.f, 0.5f));
+						line.setPosition(sf::Vector2f(cx, cy));
+						line.setRotation(sf::degrees(angle));
+						line.setFillColor(mainColor);
+						window_.draw(line);
+					};
+					drawCorner(pos.x + 9, pos.y + 9, 45.f);
+					drawCorner(pos.x + cs - 9, pos.y + 9, -45.f);
+					drawCorner(pos.x + 9, pos.y + cs - 9, -45.f);
+					drawCorner(pos.x + cs - 9, pos.y + cs - 9, 45.f);
+
+					if (isLocked) {
+						// Lock icon
+						sf::RectangleShape lockBody(sf::Vector2f(12.f, 9.f));
+						lockBody.setPosition(sf::Vector2f(pos.x + cs / 2.f - 6.f, pos.y + cs / 2.f - 2.f));
+						lockBody.setFillColor(sf::Color(255, 255, 255, 200));
+
+						sf::RectangleShape lockShackle(sf::Vector2f(8.f, 8.f));
+						lockShackle.setPosition(sf::Vector2f(pos.x + cs / 2.f - 4.f, pos.y + cs / 2.f - 8.f));
+						lockShackle.setFillColor(sf::Color::Transparent);
+						lockShackle.setOutlineColor(sf::Color(255, 255, 255, 200));
+						lockShackle.setOutlineThickness(2.f);
+
+						window_.draw(lockShackle);
+						window_.draw(lockBody);
+					}
+				}
 			}
 		}
 
