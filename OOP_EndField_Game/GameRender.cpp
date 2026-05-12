@@ -149,6 +149,15 @@ namespace ark {
 						window_.draw(lockShackle);
 						window_.draw(lockBody);
 					}
+					else {
+						// Player part ID
+						sf::Text numTxt(font_, std::to_string(t), (unsigned int)(cs * 0.4f));
+						numTxt.setFillColor(sf::Color(255, 255, 255, 220));
+						auto nb = numTxt.getLocalBounds();
+						numTxt.setPosition(sf::Vector2f(pos.x + (cs - nb.size.x) / 2 - nb.position.x,
+							pos.y + (cs - nb.size.y) / 2 - nb.position.y));
+						window_.draw(numTxt);
+					}
 				}
 			}
 		}
