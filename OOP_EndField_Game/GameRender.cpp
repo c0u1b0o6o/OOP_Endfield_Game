@@ -70,11 +70,21 @@ namespace ark {
 					cell.setFillColor(sf::Color(45, 45, 50));
 					window_.draw(cell);
 
-					// A few diagonal lines to fake hatching
-					for (int i = -1; i <= 1; ++i) {
-						sf::RectangleShape hl(sf::Vector2f(cs * 1.5f, 1.f));
-						hl.setOrigin(sf::Vector2f(cs * 0.75f, 0.5f));
-						hl.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2 + i * cs * 0.3f));
+					// A few diagonal lines to fake hatching strictly inside cell bounds
+					float offsets[3] = { 0.f, 0.35f, -0.35f };
+					for (float d : offsets) {
+						float x1 = (d > 0) ? d * cs : 0.f;
+						float y1 = (d < 0) ? -d * cs : 0.f;
+						float x2 = (d < 0) ? cs + d * cs : cs;
+						float y2 = (d > 0) ? cs - d * cs : cs;
+
+						float dx = x2 - x1;
+						float dy = y2 - y1;
+						float len = std::sqrt(dx * dx + dy * dy);
+
+						sf::RectangleShape hl(sf::Vector2f(len, 1.f));
+						hl.setOrigin(sf::Vector2f(len / 2.f, 0.5f));
+						hl.setPosition(sf::Vector2f(pos.x + x1 + dx / 2.f, pos.y + y1 + dy / 2.f));
 						hl.setRotation(sf::degrees(45.f));
 						hl.setFillColor(sf::Color(35, 35, 40));
 						window_.draw(hl);
