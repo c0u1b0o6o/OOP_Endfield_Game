@@ -4,10 +4,14 @@
 
 namespace ark {
 
+	// 渲染一般按鈕（使用強調色）
+	// 設計說明：封裝按鈕繪製以維持一致的視覺風格與 hover 效果。
 	void Game::renderButton(float x, float y, float w, float h, const std::string& label, bool hover) {
 		renderColorButton(x, y, w, h, label, hover, Colors::accent());
 	}
 
+	// 渲染帶顏色的按鈕（可指定背景色）
+	// 詳細說明：hover 時讓顏色變亮以提供互動回饋；文字置中顯示。
 	void Game::renderColorButton(float x, float y, float w, float h, const std::string& label, bool hover, sf::Color bgColor) {
 		sf::RectangleShape bg(sf::Vector2f(w, h));
 		bg.setPosition(sf::Vector2f(x, y));
@@ -31,6 +35,9 @@ namespace ark {
 		window_.draw(txt);
 	}
 
+	// 渲染棋盤與格子，包含多種格子種類的視覺表現
+	// 詳細說明：根據 cellType 對不同格子使用不同圖形（例如 empty、block、fixed、player），
+	// 以提升識別度。繪製順序為背景->格子內容->格線，確保邊界可見。
 	void Game::renderBoard(const Board& board, float ox, float oy, float cs) {
 		int R = board.rows(), C = board.cols();
 		// Grid background
@@ -48,7 +55,7 @@ namespace ark {
 				int t = board.cellType(r, c);
 
 				if (t == cell::EMPTY) {
-					// 1. 未下方塊的底: Brighter background so it is visible, and more visible X
+					// 空格：使用較亮的背景與交叉線以示區別，讓玩家容易看出可放置區域
 					sf::RectangleShape cell(sf::Vector2f(cs, cs));
 					cell.setPosition(pos);
 					cell.setFillColor(sf::Color(25, 25, 30, 200));
@@ -64,13 +71,13 @@ namespace ark {
 					window_.draw(line1);
 				}
 				else if (t == cell::BLOCK) {
-					// 3. 不可用的底: Gray square with diagonal lines (hatching) and forbidden symbol
+					// 阻擋格：使用灰色底並添加斜線及禁止符號，清楚告知玩家該處不可放置
 					sf::RectangleShape cell(sf::Vector2f(cs, cs));
 					cell.setPosition(pos);
 					cell.setFillColor(sf::Color(45, 45, 50));
 					window_.draw(cell);
 
-					// A few diagonal lines to fake hatching strictly inside cell bounds
+					// 斜線紋理
 					float offsets[3] = { 0.f, 0.35f, -0.35f };
 					for (float d : offsets) {
 						float x1 = (d > 0) ? d * cs : 0.f;
@@ -90,7 +97,7 @@ namespace ark {
 						window_.draw(hl);
 					}
 
-					// Forbidden Symbol
+					// 禁止符號（圈與斜槓）
 					sf::CircleShape forbid(cs * 0.2f);
 					forbid.setOrigin(sf::Vector2f(cs * 0.2f, cs * 0.2f));
 					forbid.setPosition(sf::Vector2f(pos.x + cs / 2, pos.y + cs / 2));
@@ -107,11 +114,11 @@ namespace ark {
 					window_.draw(forbidLine);
 				}
 				else if (t == cell::FIXED || t >= 0) {
-					// 2 & 4. 實體方塊 & X色的固定方塊
+					// 實體方塊或固定格：繪製主色、內部裝飾與角落標示
 					bool isLocked = (t == cell::FIXED);
 					sf::Color mainColor = Colors::partColor(board.cellColor(r, c));
 
-					// Base block
+					// 底色塊
 					sf::RectangleShape baseBlock(sf::Vector2f(cs - 2, cs - 2));
 					baseBlock.setPosition(sf::Vector2f(pos.x + 1, pos.y + 1));
 					sf::Color darkColor = mainColor;
@@ -120,7 +127,7 @@ namespace ark {
 					baseBlock.setOutlineColor(mainColor);
 					baseBlock.setOutlineThickness(-2.f);
 
-					// Inner decor
+					// 內部裝飾
 					sf::RectangleShape innerDecor(sf::Vector2f(cs - 14, cs - 14));
 					innerDecor.setPosition(sf::Vector2f(pos.x + 7, pos.y + 7));
 					innerDecor.setFillColor(sf::Color::Transparent);
@@ -130,7 +137,7 @@ namespace ark {
 					window_.draw(baseBlock);
 					window_.draw(innerDecor);
 
-					// Corner crosses
+					// 角落裝飾：提供視覺深度
 					auto drawCorner = [&](float cx, float cy, float angle) {
 						sf::RectangleShape line(sf::Vector2f(4.f, 1.f));
 						line.setOrigin(sf::Vector2f(2.f, 0.5f));
@@ -145,7 +152,7 @@ namespace ark {
 					drawCorner(pos.x + cs - 9, pos.y + cs - 9, 45.f);
 
 					if (isLocked) {
-						// Lock icon
+						// 鎖頭圖示表示該格為固定格，玩家不可移動
 						sf::RectangleShape lockBody(sf::Vector2f(12.f, 9.f));
 						lockBody.setPosition(sf::Vector2f(pos.x + cs / 2.f - 6.f, pos.y + cs / 2.f - 2.f));
 						lockBody.setFillColor(sf::Color(255, 255, 255, 200));
@@ -160,7 +167,7 @@ namespace ark {
 						window_.draw(lockBody);
 					}
 					else {
-						// Player part ID
+						// 非固定格：顯示玩家放置的零件 id，方便辨識
 						sf::Text numTxt(font_, std::to_string(t), (unsigned int)(cs * 0.4f));
 						numTxt.setFillColor(sf::Color(255, 255, 255, 220));
 						auto nb = numTxt.getLocalBounds();
@@ -172,7 +179,7 @@ namespace ark {
 			}
 		}
 
-		// Grid lines
+		// Grid lines 在最後繪製以疊在所有格子之上，增加視覺清晰度
 		for (int r = 0; r <= R; ++r) {
 			sf::RectangleShape line(sf::Vector2f(C * cs, 1.f));
 			line.setPosition(sf::Vector2f(ox, oy + r * cs));
@@ -187,6 +194,8 @@ namespace ark {
 		}
 	}
 
+	// 渲染行列目標值與當前計數（左側與上方）
+	// 詳細說明：目標值以顏色區分，當當前計數等於目標時以特殊顏色標示；若超過則顯示錯誤顏色
 	void Game::renderTargets(const Board& board, float ox, float oy, float cs) {
 		int R = board.rows(), C = board.cols(), CC = board.colorCount();
 		unsigned int fontSize = (unsigned int)(cs * 0.32f);
@@ -250,6 +259,8 @@ namespace ark {
 		}
 	}
 
+	// 渲染拖曳中的 ghost（預覽）
+	// 設計說明：ghost 以半透明或特定顏色顯示，並支援旋轉動畫以提升使用者體驗
 	void Game::renderGhost(float ox, float oy, float cs) {
 		if (selectedPart_ < 0) return;
 		auto& p = parts_[selectedPart_];
@@ -279,6 +290,7 @@ namespace ark {
 		}
 	}
 
+	// 渲染提示（高亮自動求解的格子）
 	void Game::renderHints(float ox, float oy, float cs) {
 		if (!showingHint_ || !solutionFound_ || solution_.empty()) return;
 
@@ -293,7 +305,7 @@ namespace ark {
 					cell.setPosition(sf::Vector2f(px, py));
 
 					sf::Color baseCol = Colors::partColor(p.colorIndex());
-					baseCol.a = 150; // Semi-transparent
+					baseCol.a = 150; // 半透明以作為提示
 					cell.setFillColor(baseCol);
 
 					baseCol.a = 200;
@@ -305,6 +317,7 @@ namespace ark {
 		}
 	}
 
+	// 渲染右側零件面板：顯示小預覽與標籤，並為已放置的零件提供不同視覺狀態
 	void Game::renderPartPalette() {
 		float palX = boardOffX_ + board_.cols() * cellSize_ + 60.f;
 		float palY = 80.f;
@@ -328,7 +341,7 @@ namespace ark {
 			bg.setOutlineThickness(isSelected ? 2.f : 1.f);
 			window_.draw(bg);
 
-			// Mini preview
+			// 小圖預覽
 			auto& p = parts_[i];
 			float miniCs = std::min(50.f / p.height(), 50.f / p.width());
 			miniCs = std::min(miniCs, 12.f);
@@ -359,7 +372,7 @@ namespace ark {
 				}
 			}
 
-			// Label
+			// 標籤
 			std::string label = "#" + std::to_string(i);
 			if (isPlaced) label += " [placed]";
 			sf::Text txt(font_, label, 13);
@@ -369,7 +382,7 @@ namespace ark {
 		}
 	}
 
-	// ---- SCENE RENDERERS ----
+	// ---- 場景渲染函式 ----
 
 	void Game::renderMainMenu() {
 		// Title
@@ -390,7 +403,7 @@ namespace ark {
 		renderButton(cx - bw / 2, 380, bw, bh, "Level Editor", isMouseOver(cx - bw / 2, 380, bw, bh));
 		renderButton(cx - bw / 2, 460, bw, bh, "Quit", isMouseOver(cx - bw / 2, 460, bw, bh));
 
-		// Decorative line
+		// 裝飾線
 		sf::RectangleShape line(sf::Vector2f(400, 2));
 		line.setPosition(sf::Vector2f(440, 260));
 		line.setFillColor(sf::Color(60, 65, 80));
@@ -415,11 +428,8 @@ namespace ark {
 			return;
 		}
 
-		// --- 【新增】1. 儲存預設視角 ---
+		// 使用限定視角繪製關卡列表以實現滾動區域裁切
 		sf::View defaultView = window_.getView();
-
-		// --- 【新增】2. 建立一個限定範圍的視角 (從 Y=90 開始，高度 570) ---
-		// SFML 3 寫法： sf::FloatRect({left, top}, {width, height})
 		sf::View listView(sf::FloatRect({ 0.f, 90.f }, { 1280.f, 570.f }));
 		listView.setViewport(sf::FloatRect({ 0.f, 90.f / 800.f }, { 1.f, 570.f / 800.f }));
 		window_.setView(listView);
@@ -440,7 +450,7 @@ namespace ark {
 			txt.setPosition(sf::Vector2f(410, y + 14));
 			window_.draw(txt);
 		}
-		// --- 【新增】3. 畫完列表後，切換回原本的視角 ---
+		// 恢復原視角
 		window_.setView(defaultView);
 	}
 
@@ -494,7 +504,7 @@ namespace ark {
 		renderButton(boardOffX_ + 480, btnY, 140, 50, "Back",
 			isMouseOver(boardOffX_ + 480, btnY, 140, 50));
 
-		// Status message
+		// 狀態訊息
 		if (!statusMsg_.empty()) {
 			sf::Text st(font_, statusMsg_, 20);
 			st.setFillColor(Colors::error());
@@ -502,7 +512,7 @@ namespace ark {
 			window_.draw(st);
 		}
 
-		// Controls help
+		// 操作說明
 		sf::Text help(font_, "R:Rotate  Enter/Left Click:Place  Esc/Right Click:Deselect  F5:Reset  F1:Hint", 16);
 		help.setFillColor(sf::Color(80, 85, 100));
 		help.setPosition(sf::Vector2f(20, 760));
@@ -529,7 +539,7 @@ namespace ark {
 		title.setPosition(sf::Vector2f(20, 10));
 		window_.draw(title);
 
-		// Tool buttons (Y = 60)
+		// Tool buttons
 		float tx = 20.f;
 		renderButton(tx, 60, 110, 40, "Empty", editorTool_ == 0); tx += 120;
 		renderButton(tx, 60, 110, 40, "Block(X)", editorTool_ == 1); tx += 120;
@@ -539,7 +549,7 @@ namespace ark {
 			tx += 120;
 		}
 
-		// Size controls (Y = 120)
+		// Size controls
 		float cy = 120.f;
 		sf::Text rl(font_, "Rows: " + std::to_string(editorRows_), 20);
 		rl.setFillColor(Colors::text()); rl.setPosition(sf::Vector2f(20, cy + 8)); window_.draw(rl);
@@ -553,7 +563,7 @@ namespace ark {
 		ccl.setFillColor(Colors::text()); ccl.setPosition(sf::Vector2f(480, cy + 8)); window_.draw(ccl);
 		renderButton(580, cy, 40, 40, "-", false); renderButton(630, cy, 40, 40, "+", false);
 
-		// Target Color panel (Y = 170)
+		// Target Color panel
 		float tcy = 170.f;
 		sf::Text tcl(font_, "Target Color:", 20);
 		tcl.setFillColor(Colors::text());
@@ -567,14 +577,14 @@ namespace ark {
 			tcx += 70.f;
 		}
 
-		// Editor board (Y = 320)
+		// Editor board
 		float eox = 140.f, eoy = 320.f, ecs = 50.f;
 		if (editorBoard_.rows() > 0) {
 			renderBoard(editorBoard_, eox, eoy, ecs);
 
 			int tc = editorTargetColor_;
 			if (tc < editorBoard_.colorCount()) {
-				// Row Target adjustments (left side)
+				// Row Target adjustments
 				for (int r = 0; r < editorBoard_.rows(); ++r) {
 					float yy = eoy + r * ecs;
 					int tg = editorBoard_.targetRow(tc, r);
@@ -586,7 +596,7 @@ namespace ark {
 					window_.draw(tt);
 					renderButton(eox - 35, yy + 10, 25, 30, "+", false);
 				}
-				// Col Target adjustments (top side)
+				// Col Target adjustments
 				for (int c = 0; c < editorBoard_.cols(); ++c) {
 					float xx = eox + c * ecs;
 					int tg = editorBoard_.targetCol(tc, c);
@@ -616,7 +626,7 @@ namespace ark {
 		pt.setPosition(sf::Vector2f(pcx, 320));
 		window_.draw(pt);
 
-		// W, H, Color (Y = 370)
+		// W, H, Color
 		float psy = 370.f;
 		sf::Text pw(font_, "W: " + std::to_string(editorPartW_), 18);
 		pw.setFillColor(Colors::text()); pw.setPosition(sf::Vector2f(pcx, psy + 10)); window_.draw(pw);
@@ -631,7 +641,7 @@ namespace ark {
 		pcol.setPosition(sf::Vector2f(pcx + 280, psy + 10)); window_.draw(pcol);
 		renderButton(pcx + 380, psy, 110, 35, "Next Color", false);
 
-		// Part shape grid (Y = 430)
+		// Part shape grid
 		float psgy = 430.f;
 		for (int r = 0; r < editorPartH_; r++) {
 			for (int c = 0; c < editorPartW_; c++) {
@@ -652,13 +662,13 @@ namespace ark {
 		pl.setPosition(sf::Vector2f(pcx + 160, psgy + editorPartH_ * 40 + 30));
 		window_.draw(pl);
 
-		// Draw little icons of editor parts
+		// Draw editor parts with 滾動區域裁切
 		float partsStartY = psgy + editorPartH_ * 40 + 80;
 
-		// Set up a view for clipping the scrollable area
+		// 設定視角以裁切滾動區塊
 		sf::View defaultView = window_.getView();
 		sf::View partsView(sf::FloatRect({ pcx, partsStartY }, { 1280.f - pcx, 800.f - partsStartY }));
-		partsView.setViewport(sf::FloatRect({ pcx / 1280.f, partsStartY / 800.f }, { (1280.f - pcx) / 1280.f, (800.f - partsStartY) / 800.f }));
+		partsView.setViewport(sf::FloatRect({ pcx / 1280.f,(partsStartY) / 800.f }, { (1280.f - pcx) / 1280.f, (800.f - partsStartY) / 800.f }));
 		window_.setView(partsView);
 
 		float lpx = pcx;
@@ -686,7 +696,7 @@ namespace ark {
 				}
 			}
 
-			// Delete Button
+			// 刪除按鈕
 			sf::RectangleShape delBtn(sf::Vector2f(12, 12));
 			delBtn.setPosition(sf::Vector2f(lpx + 35, lpy + 3));
 			delBtn.setFillColor(Colors::error());
@@ -701,7 +711,7 @@ namespace ark {
 
 		window_.setView(defaultView);
 
-		// Bottom buttons
+		// 底部按鈕
 		float btnY2 = eoy + std::max(editorRows_, 5) * ecs + 50.f;
 		if (btnY2 < psgy + editorPartH_ * 40 + 100.f) btnY2 = psgy + editorPartH_ * 40 + 100.f;
 

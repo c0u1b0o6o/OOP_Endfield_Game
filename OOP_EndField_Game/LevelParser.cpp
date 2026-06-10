@@ -7,29 +7,30 @@
 
 namespace ark {
 
+    // 讀取關卡檔案並解析為 Board 與 Part 清單
     LevelData loadLevel(const std::string& filepath) {
         std::ifstream fin(filepath);
         if (!fin.is_open())
             throw std::runtime_error("Cannot open level file: " + filepath);
 
         int C, M, N;
-        fin >> C >> M >> N;
+        fin >> C >> M >> N; // C: 顏色數, M: 列數, N: 欄數
 
         Board board(M, N, C);
 
-        // 讀取每種顏色的目標與固定格
+        // 依顏色讀取各行列的目標數量與固定格
         for (int color = 0; color < C; ++color) {
-            // M 個列目標
+            // 每一行的目標值
             for (int r = 0; r < M; ++r) {
                 int val; fin >> val;
                 board.setTargetRowCount(color, r, val);
             }
-            // N 個欄目標
+            // 每一列的目標值
             for (int c = 0; c < N; ++c) {
                 int val; fin >> val;
                 board.setTargetColCount(color, c, val);
             }
-            // 固定格數量
+            // 該顏色的固定格數量與位置
             int x1; fin >> x1;
             for (int i = 0; i < x1; ++i) {
                 int r, c; fin >> r >> c;
@@ -37,14 +38,14 @@ namespace ark {
             }
         }
 
-        // 不可放置格
+        // 讀取阻擋格數量與位置
         int x2; fin >> x2;
         for (int i = 0; i < x2; ++i) {
             int r, c; fin >> r >> c;
             board.setBlockedCell(r, c);
         }
 
-        // 零件列表直到 EOF
+        // 讀取零件列表直到 EOF
         std::vector<Part> parts;
         int colorIdx, m2, n2;
         int partId = 0;
@@ -62,6 +63,7 @@ namespace ark {
         return LevelData{ std::move(board), std::move(parts) };
     }
 
+    // 匯出關卡到檔案（會建立必要的目錄）
     void exportLevel(const std::string& filepath, const Board& board,
                      const std::vector<Part>& parts) {
         std::filesystem::path path(filepath);
@@ -77,8 +79,7 @@ namespace ark {
         const int N = board.cols();
         fout << C << " " << M << " " << N << "\n\n";
 
-        // 收集固定格
-        // fixedCells[color] = vector<(r,c)>
+        // 收集並輸出每種顏色的目標行列與固定格
         std::vector<std::vector<std::pair<int,int>>> fixedCells(C);
         for (int r = 0; r < M; ++r)
             for (int c = 0; c < N; ++c)
@@ -98,7 +99,7 @@ namespace ark {
             fout << "\n";
         }
 
-        // 收集不可放置格
+        // 輸出阻擋格
         std::vector<std::pair<int,int>> blocked;
         for (int r = 0; r < M; ++r)
             for (int c = 0; c < N; ++c)
@@ -108,7 +109,7 @@ namespace ark {
         for (auto& [r, c] : blocked)
             fout << r << " " << c << "\n";
 
-        // 零件
+        // 輸出零件資料
         for (auto& part : parts) {
             fout << part.colorIndex() << " " << part.height() << " " << part.width() << "\n";
             for (int r = 0; r < part.height(); ++r) {
