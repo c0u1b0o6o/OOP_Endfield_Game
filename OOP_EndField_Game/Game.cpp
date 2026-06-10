@@ -9,6 +9,11 @@
 
 namespace ark {
 
+	// 建構子：初始化視窗與遊戲資源
+	// 設計說明：
+	// - 在建構子中進行基本資源載入（字型、音效）與關卡掃描，確保遊戲介面可即時顯示。
+	// - 使用固定視窗大小（1280x800）與 FPS 上限來保持畫面穩定。
+	// - 編輯器的預設 part shape 以 editorPartH_ / editorPartW_ 為基準生成空格陣列，便於使用者直接編輯。
 	Game::Game() {
 		window_.create(sf::VideoMode({ 1280u, 800u }), "Originium Circuit Repair",
 			sf::Style::Close | sf::Style::Resize);
@@ -19,6 +24,11 @@ namespace ark {
 		editorPartShape_.assign(editorPartH_, std::vector<uint8_t>(editorPartW_, 0));
 	}
 
+	// 載入音效與背景音樂
+	// 詳細說明：
+	// - 為避免遊戲在資源缺失時崩潰，載入操作以 if 判斷並在失敗時忽略特定音效。
+	// - BGM 使用 sf::Music 並設定為 loop，使遊戲背景音自動循環播放，音量設定為 40 以免過大。
+	// - 使用 std::optional 或類似容器（在 header 定義）以延遲初始化音效物件，避免在無檔案時使用未初始化的資源。
 	void Game::loadSounds() {
 		if (sbPlace_.loadFromFile("Assets/sfx/place.wav")) sndPlace_.emplace(sbPlace_);
 		if (sbError_.loadFromFile("Assets/sfx/error.wav")) sndError_.emplace(sbError_);
@@ -26,24 +36,26 @@ namespace ark {
 		if (sbRotate_.loadFromFile("Assets/sfx/rotate.wav")) sndRotate_.emplace(sbRotate_);
 		if (sbWin_.loadFromFile("Assets/sfx/win.wav")) sndWin_.emplace(sbWin_);
 
-		// 1. 載入 Click 音效 (確保 Buffer 載入成功後，再用 emplace 建構 Sound)
+		// Click 音效載入
 		if (sbClick_.loadFromFile("Assets/sfx/click.wav")) {
 			sndClick_.emplace(sbClick_);
 		}
 
-		// 2. 載入並播放 BGM
-		bgm_.emplace(); // 先將 optional 內的 sf::Music 實例化
+		// 背景音樂：若載入成功則播放並循環
+		bgm_.emplace(); // optional 實例化
 
 		if (bgm_->openFromFile("Assets/music/bgm.wav")) {
-			bgm_->setLooping(true);  // 設定無限循環
-			bgm_->setVolume(40.f);   // 設定音量大小 (0 ~ 100)
-			bgm_->play();            // 遊戲一開就播放
+			bgm_->setLooping(true);
+			bgm_->setVolume(40.f);
+			bgm_->play();
 		}
 		else {
-			statusMsg_ = "Warning: BGM load failed!";
+			statusMsg_ = "Warning: BGM load failed!"; // 顯示警告但不阻斷遊戲
 		}
 	}
 
+	// 載入字型：嘗試多個路徑以兼容不同系統配置
+	// 設計說明：遊戲可在開發機與使用者電腦間移植，因此嘗試本地資源路徑與系統字型目錄。
 	void Game::loadFont() {
 		std::vector<std::string> paths = {
 			"Assets/fonts/font.ttf",
@@ -55,11 +67,13 @@ namespace ark {
 			"C:/Windows/Fonts/segoeui.ttf"
 		};
 		for (auto& p : paths) {
-			if (font_.openFromFile(p)) return;
+			if (font_.openFromFile(p)) return; // 成功載入後立即返回
 		}
-		std::cerr << "Warning: No font loaded\n";
+		std::cerr << "Warning: No font loaded\n"; // 若都失敗則在 stderr 提醒
 	}
 
+	// 掃描關卡檔案：尋找 Levels 目錄或相對位置
+	// 設計說明：嘗試多個路徑以提高尋找成功率，排序結果以便在介面顯示穩定順序。
 	void Game::scanLevels() {
 		levelFiles_.clear();
 		std::vector<std::string> dirs = { "Levels", ".", "../Levels" };
@@ -71,11 +85,16 @@ namespace ark {
 				}
 				if (!levelFiles_.empty()) break;
 			}
-			catch (...) {}
+			catch (...) {} // 不拋出例外，繼續嘗試其他路徑
 		}
 		std::sort(levelFiles_.begin(), levelFiles_.end());
 	}
 
+	// 載入關卡並初始化遊戲狀態
+	// 詳細說明：
+	// - 使用 ark::loadLevel 將檔案解析成 Board 與 Part 的資料結構。
+	// - 將 initialBoard_/initialParts_ 保存為初始狀態，方便重設與求解。
+	// - 檢查是否在初始狀態就已經滿足勝利條件，若是則直接切換到勝利畫面。
 	void Game::loadLevel(const std::string& path) {
 		try {
 			auto data = ark::loadLevel(path);
@@ -96,13 +115,12 @@ namespace ark {
 			currentLevelPath_ = path;
 			scene_ = Scene::Playing;
 
-			// 傳入零件總數 (parts_.size()) 與目前已放置數量 (0)
+			// 若初始配置已滿足條件，直接進入勝利畫面（方便測試或特殊關卡）
 			if (board_.checkWinCondition((int)parts_.size(), placedCount_)) {
 				if (sndWin_) sndWin_->play();
-				scene_ = Scene::Victory; // 如果初始狀態就贏了，直接跳到勝利畫面
+				scene_ = Scene::Victory;
 				std::cout << "Instant Win: Initial configuration satisfies all conditions." << std::endl;
 			}
-			// ---------------------------------------
 
 			computeLayout();
 		}
@@ -112,6 +130,8 @@ namespace ark {
 		}
 	}
 
+	// 重設關卡至初始狀態
+	// 設計說明：直接使用初始快照來恢復 board/parts，比逐個 reverse 動作更可靠且簡潔。
 	void Game::resetLevel() {
 		board_ = initialBoard_;
 		parts_ = initialParts_;
@@ -123,6 +143,8 @@ namespace ark {
 		idleTimer_ = 0.f;
 	}
 
+	// 計算 UI 佈局（格子大小與偏移）
+	// 設計考量：根據棋盤大小動態調整格子尺寸使其在畫面內顯示良好，同時限制最大方格大小以避免過大
 	void Game::computeLayout() {
 		float maxBoardW = 650.f, maxBoardH = 600.f;
 		float marginTop = 80.f;
@@ -130,10 +152,12 @@ namespace ark {
 		float csH = maxBoardH / (board_.rows() + 2);
 		cellSize_ = std::min(csW, csH);
 		cellSize_ = std::min(cellSize_, 70.f);
-		boardOffX_ = 60.f + cellSize_; // leave room for row targets
-		boardOffY_ = marginTop + cellSize_; // leave room for col targets
+		boardOffX_ = 60.f + cellSize_; // 留空間顯示列目標
+		boardOffY_ = marginTop + cellSize_; // 留空間顯示行目標
 	}
 
+	// 選取零件：若該零件已放置則先移除，再啟動拖曳狀態
+	// 設計說明：允許玩家從盤面上再次點取已放置的零件以重新放置，故先移除再標為選取
 	void Game::selectPart(int idx) {
 		if (idx < 0 || idx >= (int)parts_.size()) return;
 		if (placements_[idx].placed) {
@@ -146,11 +170,16 @@ namespace ark {
 		dragging_ = true;
 	}
 
+	// 取消選取
 	void Game::deselectPart() {
 		selectedPart_ = -1;
 		dragging_ = false;
 	}
 
+	// 嘗試在 ghost 位置放置目前選取的零件，並處理放置後邏輯
+	// 詳細說明：
+	// - 先用 canPlace 檢查是否可放置，若失敗給予錯誤音效與提示訊息。
+	// - 成功放置後更新 placements_、placedCount_，並立刻檢查勝利條件。
 	void Game::tryPlace() {
 		if (selectedPart_ < 0) return;
 		auto& p = parts_[selectedPart_];
@@ -171,20 +200,24 @@ namespace ark {
 			deselectPart();
 		}
 		else {
+			// 放置失敗：播放錯誤音效並顯示錯誤文字
 			if (sndError_) sndError_->play();
 			statusMsg_ = err;
 			statusTimer_ = 2.f;
 		}
 	}
 
+	// 旋轉目前選取的零件（順時針）
 	void Game::rotateCurrent() {
 		if (selectedPart_ < 0) return;
 		if (sndRotate_) sndRotate_->play();
 		parts_[selectedPart_].rotateRight();
 		rotating_ = true;
-		rotAnimAngle_ = 90.f;
+		rotAnimAngle_ = 90.f; // 旋轉動畫角度，用於渲染時顯示動畫
 	}
 
+	// 在背景求解所有解並列印（單程式內同步呼叫，非真正分離執行緒）
+	// 詳細說明：solveAll 可能花費較久，這裡呼叫時最好是按下求解按鈕或閒置需求觸發。
 	void Game::solveInBackground() {
 		if (solutionSearched_) return;
 		solutionSearched_ = true;
@@ -194,6 +227,7 @@ namespace ark {
 			solutionFound_ = true;
 			solution_ = allSols[0];
 			std::cout << "=== Auto-Solver Found " << allSols.size() << " Solution(s) ===" << std::endl;
+			// 列印所有解到 console，方便除錯與驗證
 			for (size_t i = 0; i < allSols.size(); ++i) {
 				std::cout << "[Solution " << (i + 1) << "]" << std::endl;
 				Board temp = initialBoard_;
@@ -211,24 +245,29 @@ namespace ark {
 		}
 	}
 
+	// 顯示提示（若已找到解則顯示第一個解的格子）
 	void Game::showHint() {
 		if (!solutionFound_ || solution_.empty()) return;
 		showingHint_ = true;
 	}
 
+	// 取得滑鼠位置的輔助函式
 	sf::Vector2f Game::mousePos() const {
 		auto mp = sf::Mouse::getPosition(window_);
 		return sf::Vector2f(static_cast<float>(mp.x), static_cast<float>(mp.y));
 	}
 
+	// 判斷滑鼠是否位於指定矩形範圍內的輔助函式
 	bool Game::isMouseOver(float x, float y, float w, float h) const {
 		auto m = mousePos();
 		return m.x >= x && m.x <= x + w && m.y >= y && m.y <= y + h;
 	}
 
-	// ---- UPDATE ----
+	// ---- 更新邏輯 ----
 	void Game::update(float dt) {
+		// 狀態訊息計時器
 		if (statusTimer_ > 0) { statusTimer_ -= dt; if (statusTimer_ <= 0) statusMsg_.clear(); }
+		// 旋轉動畫計時
 		if (rotating_) { rotAnimAngle_ -= dt * 500.f; if (rotAnimAngle_ <= 0) rotating_ = false; }
 
 		switch (scene_) {
@@ -242,6 +281,8 @@ namespace ark {
 
 	void Game::updateMainMenu(float) {}
 	void Game::updateLevelSelect(float) {}
+
+	// 更新遊玩畫面：計算 ghost 位置並檢查閒置提示觸發
 	void Game::updatePlaying(float dt) {
 		if (selectedPart_ >= 0) {
 			auto m = mousePos();
@@ -249,6 +290,7 @@ namespace ark {
 			ghostCol_ = (int)std::floor((m.x - boardOffX_) / cellSize_);
 		}
 		idleTimer_ += dt;
+		// 若閒置時間超過 30 秒則啟用 Hint 按鈕並在背景自動求解
 		if (idleTimer_ > 30.f && !hintAvailable_) {
 			hintAvailable_ = true;
 			if (!solutionSearched_) solveInBackground();
@@ -257,7 +299,7 @@ namespace ark {
 	void Game::updateEditor(float) {}
 	void Game::updateVictory(float) {}
 
-	// ---- EVENTS ----
+	// ---- 事件處理 ----
 	void Game::handleEvent(const sf::Event& ev) {
 		switch (scene_) {
 		case Scene::MainMenu:    handleMainMenuEvent(ev); break;
@@ -268,6 +310,7 @@ namespace ark {
 		}
 	}
 
+	// 處理主選單事件（按鈕切換）
 	void Game::handleMainMenuEvent(const sf::Event& ev) {
 		if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
 			if (mp->button == sf::Mouse::Button::Left) {
@@ -282,13 +325,13 @@ namespace ark {
 					if (editorBoard_.rows() == 0) editorBoard_ = Board(editorRows_, editorCols_, editorColors_);
 				}
 				else if (isMouseOver(cx - bw / 2, 460, bw, bh)) {
-					// 退出遊戲直接關閉，通常不播音效
-					window_.close();
+					window_.close(); // 退出遊戲
 				}
 			}
 		}
 	}
 
+	// 處理關卡選單的事件：滾輪滾動與按鈕點擊
 	void Game::handleLevelSelectEvent(const sf::Event& ev) {
 		if (auto* sc = ev.getIf<sf::Event::MouseWheelScrolled>()) {
 			float maxScroll = std::max(0.f, levelFiles_.size() * 60.f - 450.f);
@@ -297,16 +340,14 @@ namespace ark {
 			if (levelScrollY_ < -maxScroll) levelScrollY_ = -maxScroll;
 		}
 
-		// 【修正】合併所有的 Click 判斷，避免提早 return 導致下面程式碼失效
+		// 合併 Click 判斷，避免 early return 導致後續按鈕失效
 		if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
 			if (mp->button == sf::Mouse::Button::Left) {
-				// 返回按鈕
 				if (isMouseOver(40, 380, 100, 40)) {
 					if (sndClick_) sndClick_->play();
 					scene_ = Scene::MainMenu;
 					return;
 				}
-				// 開啟檔案按鈕
 				if (isMouseOver(40, 430, 100, 40)) {
 					if (sndClick_) sndClick_->play();
 
@@ -325,7 +366,6 @@ namespace ark {
 					}
 					return;
 				}
-				// 關卡清單按鈕
 				for (int i = 0; i < (int)levelFiles_.size(); ++i) {
 					float y = 100.f + i * 60.f + levelScrollY_;
 					if (isMouseOver(390, y, 500, 50)) {
@@ -338,6 +378,7 @@ namespace ark {
 		}
 	}
 
+	// 處理遊戲中（Playing）事件：鍵盤操作、滑鼠點擊、按鈕
 	void Game::handlePlayingEvent(const sf::Event& ev) {
 		if (showingNoSolution_) {
 			if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
@@ -375,7 +416,7 @@ namespace ark {
 		if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
 			if (mp->button == sf::Mouse::Button::Left) {
 				auto m = mousePos();
-				// 右側零件盤
+				// 右側零件盤檢測
 				float palX = boardOffX_ + board_.cols() * cellSize_ + 60.f;
 				for (int i = 0; i < (int)parts_.size(); ++i) {
 					float py = 100.f + i * 65.f;
@@ -384,7 +425,7 @@ namespace ark {
 						return;
 					}
 				}
-				// 點擊盤面
+				// 點擊盤面放置或選取已放置的零件
 				if (selectedPart_ >= 0) {
 					tryPlace();
 				}
@@ -396,7 +437,7 @@ namespace ark {
 						selectPart(pid);
 					}
 				}
-				// 底部按鈕群
+				// 下方按鈕欄處理
 				float btnY = boardOffY_ + board_.rows() * cellSize_ + 40.f;
 
 				if (isMouseOver(boardOffX_, btnY, 140, 50)) {
@@ -450,6 +491,7 @@ namespace ark {
 		}
 	}
 
+	// 編輯器事件處理：工具切換、尺寸調整、匯出與測試
 	void Game::handleEditorEvent(const sf::Event& ev) {
 		if (auto* kp = ev.getIf<sf::Event::KeyPressed>()) {
 			if (kp->code == sf::Keyboard::Key::Escape) scene_ = Scene::MainMenu;
@@ -472,7 +514,7 @@ namespace ark {
 		if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
 			if (mp->button == sf::Mouse::Button::Left) {
 				auto m = mousePos();
-				// 工具列切換不加音效，避免吵雜，但若需要也可自行加上
+				// 工具列切換（不加音效以免吵雜）
 				float tx = 20.f;
 				if (isMouseOver(tx, 60, 110, 40)) { editorTool_ = 0; } tx += 120;
 				if (isMouseOver(tx, 60, 110, 40)) { editorTool_ = 1; } tx += 120;
@@ -520,7 +562,7 @@ namespace ark {
 					editorParts_.erase(it, editorParts_.end());
 				}
 
-				// Target Color Selection
+				// Target Color 選擇
 				float tcy = 170.f;
 				float tcx = 160.f;
 				for (int c = 0; c < editorColors_; c++) {
@@ -532,7 +574,7 @@ namespace ark {
 
 				float eox = 140.f, eoy = 320.f, ecs = 50.f;
 
-				// Target Value adjustments
+				// Target Value 調整
 				int tc = editorTargetColor_;
 				if (tc < editorBoard_.colorCount()) {
 					for (int r = 0; r < editorBoard_.rows(); ++r) {
@@ -575,10 +617,10 @@ namespace ark {
 				int pc = (int)((m.x - psx) / 40.f);
 				if (m.y >= psgy && m.x >= psx && pr >= 0 && pr < editorPartH_ && pc >= 0 && pc < editorPartW_) {
 					if (pr < (int)editorPartShape_.size() && pc < (int)editorPartShape_[0].size())
-						editorPartShape_[pr][pc] ^= 1;
+						editorPartShape_[pr][pc] ^= 1; // 切換格子
 				}
 
-				// Add part button
+				// Add part
 				if (isMouseOver(pcx, psgy + editorPartH_ * 40.f + 20, 140, 45)) {
 					if (sndClick_) sndClick_->play();
 					bool hasCell = false;
@@ -590,7 +632,7 @@ namespace ark {
 					}
 				}
 
-				// Check for part deletion in parts view
+				// 刪除編輯器中的零件
 				float partsStartY = 430.f + editorPartH_ * 40.f + 80.f;
 				if (m.x >= pcx && m.x < 1280.f && m.y >= partsStartY && m.y < 800.f) {
 					float lpx = pcx;
@@ -598,15 +640,15 @@ namespace ark {
 					for (size_t i = 0; i < editorParts_.size(); ) {
 						if (lpx + 60 > 1200) { lpx = pcx; lpy += 60; }
 
-						// Delete Button bounds matching GameRender
+						// Delete Button bounds
 						if (m.x >= lpx + 35 && m.x <= lpx + 47 && m.y >= lpy + 3 && m.y <= lpy + 15) {
 							editorParts_.erase(editorParts_.begin() + i);
 							if (sndClick_) sndClick_->play();
-							// Update IDs
+							// 更新 ID
 							for (size_t j = i; j < editorParts_.size(); ++j) {
 								editorParts_[j] = Part(j, editorParts_[j].colorIndex(), editorParts_[j].shape());
 							}
-							break; // Stop evaluating to prevent deleting multiple parts in one click
+							break; // 防止一次點擊刪除多個
 						}
 
 						lpx += 60;
@@ -624,7 +666,7 @@ namespace ark {
 
 				if (isMouseOver(pcx + 380, psy, 110, 35)) editorPartColor_ = (editorPartColor_ + 1) % editorColors_;
 
-				// Editor Bottom Buttons
+				// 匯出、測試與返回按鈕
 				float btnY2 = eoy + std::max(editorRows_, 5) * ecs + 50.f;
 				if (btnY2 < psgy + editorPartH_ * 40 + 100.f) btnY2 = psgy + editorPartH_ * 40 + 100.f;
 
@@ -660,6 +702,7 @@ namespace ark {
 		}
 	}
 
+	// 勝利畫面事件處理：按鈕返回或進入編輯器
 	void Game::handleVictoryEvent(const sf::Event& ev) {
 		if (auto* mp = ev.getIf<sf::Event::MouseButtonPressed>()) {
 			if (mp->button == sf::Mouse::Button::Left) {
@@ -681,7 +724,7 @@ namespace ark {
 		}
 	}
 
-	// ---- MAIN LOOP ----
+	// 主迴圈：處理事件、更新與渲染
 	void Game::run() {
 		if (!startLevelPath_.empty()) {
 			loadLevel(startLevelPath_);

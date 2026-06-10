@@ -14,173 +14,173 @@
 
 namespace ark {
 
-// ---- πC¿∏™¨∫A¶C¡| ----
-enum class Scene { MainMenu, LevelSelect, Playing, Editor, Victory };
+	// ---- ÈÅäÊà≤ÁãÄÊÖãÂàóËàâ ----
+	enum class Scene { MainMenu, LevelSelect, Playing, Editor, Victory };
 
-// ---- √C¶‚§ËÆ◊ ----
-namespace Colors {
-    inline sf::Color bg()         { return sf::Color(18, 18, 24); }
-    inline sf::Color panel()      { return sf::Color(28, 30, 40); }
-    inline sf::Color grid()       { return sf::Color(40, 44, 58); }
-    inline sf::Color gridLine()   { return sf::Color(60, 65, 80); }
-    inline sf::Color blocked()    { return sf::Color(55, 55, 65); }
-    inline sf::Color fixed()      { return sf::Color(180, 160, 60); }
-    inline sf::Color text()       { return sf::Color(220, 225, 240); }
-    inline sf::Color accent()     { return sf::Color(80, 200, 120); }
-    inline sf::Color accentHover(){ return sf::Color(100, 230, 140); }
-    inline sf::Color error()      { return sf::Color(220, 60, 60); }
-    inline sf::Color hintColor()  { return sf::Color(80, 200, 120, 100); }
-    inline sf::Color partColor(int colorIdx) {
-        switch(colorIdx % 6) {
-            case 0: return sf::Color(80, 200, 120);   // ∫Ò
-            case 1: return sf::Color(80, 140, 220);   // ¬≈
-            case 2: return sf::Color(220, 100, 80);   // ¨ı
-            case 3: return sf::Color(200, 180, 60);   // ∂¿
-            case 4: return sf::Color(180, 100, 220);  // µµ
-            default:return sf::Color(220, 140, 60);   // æÔ
-        }
-    }
-    inline sf::Color partGhost(int colorIdx) {
-        auto c = partColor(colorIdx);
-        c.a = 120;
-        return c;
-    }
-}
+	// ---- È°èËâ≤ÊñπÊ°à ----
+	namespace Colors {
+		inline sf::Color bg() { return sf::Color(18, 18, 24); }
+		inline sf::Color panel() { return sf::Color(28, 30, 40); }
+		inline sf::Color grid() { return sf::Color(40, 44, 58); }
+		inline sf::Color gridLine() { return sf::Color(60, 65, 80); }
+		inline sf::Color blocked() { return sf::Color(55, 55, 65); }
+		inline sf::Color fixed() { return sf::Color(180, 160, 60); }
+		inline sf::Color text() { return sf::Color(220, 225, 240); }
+		inline sf::Color accent() { return sf::Color(80, 200, 120); }
+		inline sf::Color accentHover() { return sf::Color(100, 230, 140); }
+		inline sf::Color error() { return sf::Color(220, 60, 60); }
+		inline sf::Color hintColor() { return sf::Color(80, 200, 120, 100); }
+		inline sf::Color partColor(int colorIdx) {
+			switch (colorIdx % 6) {
+			case 0: return sf::Color(80, 200, 120);   // Á∂†
+			case 1: return sf::Color(80, 140, 220);   // Ëóç
+			case 2: return sf::Color(220, 100, 80);   // Á¥Ö
+			case 3: return sf::Color(200, 180, 60);   // ÈªÉ
+			case 4: return sf::Color(180, 100, 220);  // Á¥´
+			default:return sf::Color(220, 140, 60);   // Ê©ò
+			}
+		}
+		inline sf::Color partGhost(int colorIdx) {
+			auto c = partColor(colorIdx);
+			c.a = 120;
+			return c;
+		}
+	}
 
-// ---- ©Ò∏m∏Í∞T ----
-struct PlacementInfo {
-    bool placed = false;
-    int anchorRow = 0, anchorCol = 0;
-    int rotation = 0;
-};
+	// ---- ÊîæÁΩÆË≥áË®ä ----
+	struct PlacementInfo {
+		bool placed = false;
+		int anchorRow = 0, anchorCol = 0;
+		int rotation = 0;
+	};
 
-// ---- •DπC¿∏√˛ßO ----
-class Game {
-public:
-    Game();
-    void run();
-    void setStartLevel(const std::string& path) { startLevelPath_ = path; }
+	// ---- ‰∏ªÈÅäÊà≤È°ûÂà• ----
+	class Game {
+	public:
+		Game();
+		void run();
+		void setStartLevel(const std::string& path) { startLevelPath_ = path; }
 
-private:
-    // ---- µ¯µ° ----
-    sf::RenderWindow window_;
-    sf::Font font_;
-    float cellSize_ = 50.f;
-    float boardOffX_ = 0.f, boardOffY_ = 0.f;
+	private:
+		// ---- Ë¶ñÁ™ó ----
+		sf::RenderWindow window_;
+		sf::Font font_;
+		float cellSize_ = 50.f;
+		float boardOffX_ = 0.f, boardOffY_ = 0.f;
 
-    // ---- ≠µÆƒ ----
-    sf::SoundBuffer sbPlace_, sbError_, sbPick_, sbRotate_, sbWin_, sbClick_;
-    std::optional<sf::Sound> sndPlace_, sndError_, sndPick_, sndRotate_, sndWin_, sndClick_;
-    std::optional<sf::Music> bgm_;
+		// ---- Èü≥Êïà ----
+		sf::SoundBuffer sbPlace_, sbError_, sbPick_, sbRotate_, sbWin_, sbClick_;
+		std::optional<sf::Sound> sndPlace_, sndError_, sndPick_, sndRotate_, sndWin_, sndClick_;
+		std::optional<sf::Music> bgm_;
 
-    // ---- ≥ı¥∫ ----
-    Scene scene_ = Scene::MainMenu;
-    std::string startLevelPath_;
+		// ---- Â†¥ÊôØ ----
+		Scene scene_ = Scene::MainMenu;
+		std::string startLevelPath_;
 
-    // ---- √ˆ•d ----
-    Board board_;
-    Board initialBoard_;
-    std::vector<Part> parts_;
-    std::vector<Part> initialParts_;
-    std::vector<PlacementInfo> placements_;
-    int placedCount_ = 0;
-    std::string currentLevelPath_;
-    std::vector<std::string> levelFiles_;
+		// ---- ÈóúÂç° ----
+		Board board_;
+		Board initialBoard_;
+		std::vector<Part> parts_;
+		std::vector<Part> initialParts_;
+		std::vector<PlacementInfo> placements_;
+		int placedCount_ = 0;
+		std::string currentLevelPath_;
+		std::vector<std::string> levelFiles_;
 
-    // ---- æﬁß@™¨∫A ----
-    int selectedPart_ = -1;
-    int ghostRow_ = 0, ghostCol_ = 0;
-    bool dragging_ = false;
-    std::string statusMsg_;
-    float statusTimer_ = 0.f;
+		// ---- Êìç‰ΩúÁãÄÊÖã ----
+		int selectedPart_ = -1;
+		int ghostRow_ = 0, ghostCol_ = 0;
+		bool dragging_ = false;
+		std::string statusMsg_;
+		float statusTimer_ = 0.f;
 
-    // ---- ¥£•‹ / ∏—√D ----
-    AutoSolver solver_;
-    std::vector<SolverPlacement> solution_;
-    bool solutionFound_ = false;
-    bool solutionSearched_ = false;
-    float idleTimer_ = 0.f;
-    bool hintAvailable_ = false;
-    bool showingHint_ = false;
-    bool showingNoSolution_ = false;
-    int hintPartIdx_ = -1;
-    bool testingCustomLevel_ = false;
+		// ---- ÊèêÁ§∫ / Ëß£È°å ----
+		AutoSolver solver_;
+		std::vector<SolverPlacement> solution_;
+		bool solutionFound_ = false;
+		bool solutionSearched_ = false;
+		float idleTimer_ = 0.f;
+		bool hintAvailable_ = false;
+		bool showingHint_ = false;
+		bool showingNoSolution_ = false;
+		int hintPartIdx_ = -1;
+		bool testingCustomLevel_ = false;
 
-    // ---- ∞ µe ----
-    float rotAnimAngle_ = 0.f;
-    bool rotating_ = false;
+		// ---- ÂãïÁï´ ----
+		float rotAnimAngle_ = 0.f;
+		bool rotating_ = false;
 
-    // ---- √ˆ•døÔæ‹ UI ----
-    int menuHover_ = -1;
-    int levelHover_ = -1;
-    float levelScrollY_ = 0.f;
+		// ---- ÈóúÂç°ÈÅ∏Êìá UI ----
+		int menuHover_ = -1;
+		int levelHover_ = -1;
+		float levelScrollY_ = 0.f;
 
-    // ---- Editor ----
-    int editorRows_ = 5, editorCols_ = 5, editorColors_ = 1;
-    Board editorBoard_;
-    std::vector<Part> editorParts_;
-    int editorTool_ = 0; // 0=empty,1=blocked,2+=fixed color
-    int editorPartColor_ = 0;
-    int editorTargetColor_ = 0;
-    int editorPartW_ = 2, editorPartH_ = 2;
-    Shape editorPartShape_;
-    bool editorDrawingPart_ = false;
-    float editorScrollY_ = 0.f;
+		// ---- Editor ----
+		int editorRows_ = 5, editorCols_ = 5, editorColors_ = 1;
+		Board editorBoard_;
+		std::vector<Part> editorParts_;
+		int editorTool_ = 0; // 0=empty,1=blocked,2+=fixed color
+		int editorPartColor_ = 0;
+		int editorTargetColor_ = 0;
+		int editorPartW_ = 2, editorPartH_ = 2;
+		Shape editorPartShape_;
+		bool editorDrawingPart_ = false;
+		float editorScrollY_ = 0.f;
 
-    // ---- §Ë™k ----
-    void loadFont();
-    void loadSounds();
-    void scanLevels();
-    void loadLevel(const std::string& path);
-    void resetLevel();
-    void computeLayout();
+		// ---- ÊñπÊ≥ï ----
+		void loadFont();
+		void loadSounds();
+		void scanLevels();
+		void loadLevel(const std::string& path);
+		void resetLevel();
+		void computeLayout();
 
-    // πC¿∏≈ﬁøË
-    void selectPart(int idx);
-    void deselectPart();
-    void tryPlace();
-    void pickupPart(int partId);
-    void rotateCurrent();
-    void solveInBackground();
-    void showHint();
+		// ÈÅäÊà≤ÈÇèËºØ
+		void selectPart(int idx);
+		void deselectPart();
+		void tryPlace();
+		void pickupPart(int partId);
+		void rotateCurrent();
+		void solveInBackground();
+		void showHint();
 
-    // ßÛ∑s
-    void update(float dt);
-    void updateMainMenu(float dt);
-    void updateLevelSelect(float dt);
-    void updatePlaying(float dt);
-    void updateEditor(float dt);
-    void updateVictory(float dt);
+		// Êõ¥Êñ∞
+		void update(float dt);
+		void updateMainMenu(float dt);
+		void updateLevelSelect(float dt);
+		void updatePlaying(float dt);
+		void updateEditor(float dt);
+		void updateVictory(float dt);
 
-    // ®∆•Û
-    void handleEvent(const sf::Event& ev);
-    void handleMainMenuEvent(const sf::Event& ev);
-    void handleLevelSelectEvent(const sf::Event& ev);
-    void handlePlayingEvent(const sf::Event& ev);
-    void handleEditorEvent(const sf::Event& ev);
-    void handleVictoryEvent(const sf::Event& ev);
+		// ‰∫ã‰ª∂
+		void handleEvent(const sf::Event& ev);
+		void handleMainMenuEvent(const sf::Event& ev);
+		void handleLevelSelectEvent(const sf::Event& ev);
+		void handlePlayingEvent(const sf::Event& ev);
+		void handleEditorEvent(const sf::Event& ev);
+		void handleVictoryEvent(const sf::Event& ev);
 
-    // ¥Ë¨V
-    void render();
-    void renderMainMenu();
-    void renderLevelSelect();
-    void renderPlaying();
-    void renderEditor();
-    void renderVictory();
-    void renderBoard(const Board& board, float ox, float oy, float cs);
-    void renderParts(float ox, float oy, float cs);
-    void renderGhost(float ox, float oy, float cs);
-    void renderHints(float ox, float oy, float cs);
-    void renderTargets(const Board& board, float ox, float oy, float cs);
-    void renderPartPalette();
-    void renderButton(float x, float y, float w, float h,
-                      const std::string& label, bool hover);
-    void renderColorButton(float x, float y, float w, float h,
-                           const std::string& label, bool hover, sf::Color bgColor);
-    bool isMouseOver(float x, float y, float w, float h) const;
+		// Ê∏≤Êüì
+		void render();
+		void renderMainMenu();
+		void renderLevelSelect();
+		void renderPlaying();
+		void renderEditor();
+		void renderVictory();
+		void renderBoard(const Board& board, float ox, float oy, float cs);
+		void renderParts(float ox, float oy, float cs);
+		void renderGhost(float ox, float oy, float cs);
+		void renderHints(float ox, float oy, float cs);
+		void renderTargets(const Board& board, float ox, float oy, float cs);
+		void renderPartPalette();
+		void renderButton(float x, float y, float w, float h,
+			const std::string& label, bool hover);
+		void renderColorButton(float x, float y, float w, float h,
+			const std::string& label, bool hover, sf::Color bgColor);
+		bool isMouseOver(float x, float y, float w, float h) const;
 
-    sf::Vector2f mousePos() const;
-};
+		sf::Vector2f mousePos() const;
+	};
 
 } // namespace ark
 

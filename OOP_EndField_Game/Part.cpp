@@ -3,6 +3,7 @@
 
 namespace ark {
 
+	// 建構子：初始化 id、顏色、shape，並計算尺寸與 pivot
 	Part::Part(int id, int colorIndex, const Shape& shape)
 		: id_(id), colorIndex_(colorIndex), shape_(shape)
 	{
@@ -13,6 +14,7 @@ namespace ark {
 		recomputePivotAndCount();
 	}
 
+	// 重新計算 pivot（第一個非空格位置）與方格數量
 	void Part::recomputePivotAndCount() {
 		pivotRow_ = -1; pivotCol_ = -1; cellCount_ = 0;
 		for (int r = 0; r < height_; ++r)
@@ -25,6 +27,7 @@ namespace ark {
 			throw std::invalid_argument("Part: shape has no filled cell");
 	}
 
+	// 將形狀順時針旋轉 90 度，並回傳 pivot 的位移差值
 	Part::RotateDelta Part::rotateRight() {
 		const int oldH = height_, oldW = width_;
 		const int oldPivotR = pivotRow_, oldPivotC = pivotCol_;
@@ -39,6 +42,7 @@ namespace ark {
 		width_ = oldH;
 		recomputePivotAndCount();
 
+		// 計算旋轉後原 pivot 在新座標系的位置
 		const int rotatedOldPivotR = oldPivotC;
 		const int rotatedOldPivotC = oldH - 1 - oldPivotR;
 
@@ -51,6 +55,7 @@ namespace ark {
 		};
 	}
 
+	// 產生一個旋轉指定次數的拷貝（不修改原物件）
 	Part Part::rotated(int times) const {
 		Part copy = *this;
 		for (int i = 0; i < (times % 4); ++i)
